@@ -2,7 +2,10 @@
 <html lang="en" class="theme-lilac" id="htmlRoot">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>LifeHub - Budget & Loans Ledger</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -76,6 +79,10 @@
             --text-color: #44403c;
             --muted-color: #a8a29e;
             --border-color: #fecdd3;
+        }
+        /* Prevent double tap zoom on mobile */
+        button, input, select, textarea {
+            touch-action: manipulation;
         }
     </style>
 </head>
@@ -263,6 +270,7 @@
         <section id="tab-settings" class="space-y-4 tab-content hidden">
             <div class="bg-theme-card border border-theme-border rounded-2xl p-4 shadow-sm space-y-4">
                 <h2 class="font-bold text-base">App Settings</h2>
+                
                 <div>
                     <label class="block text-xs font-semibold mb-1 text-theme-muted">Pay Period Frequency</label>
                     <select id="settingPayFrequency" onchange="updatePayFrequencySetting(this.value)" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
@@ -275,6 +283,18 @@
                 <div class="space-y-2">
                     <label class="block text-xs font-semibold text-theme-muted">Customize Period Names</label>
                     <div id="periodLabelsConfigContainer" class="space-y-2"></div>
+                </div>
+
+                <hr class="border-theme-border">
+
+                <!-- CATEGORIES CUSTOMIZATION -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold text-theme-muted">Customize Expense Categories</label>
+                    <div id="categoryConfigList" class="space-y-2 max-h-32 overflow-y-auto"></div>
+                    <div class="flex space-x-2">
+                        <input type="text" id="newCategoryInput" placeholder="New Category" class="flex-1 bg-theme-bg border border-theme-border rounded-xl px-3 py-1.5 text-xs">
+                        <button onclick="addCustomCategory()" class="bg-theme-primary text-white px-3 py-1.5 rounded-xl text-xs font-medium">Add</button>
+                    </div>
                 </div>
 
                 <hr class="border-theme-border">
@@ -377,33 +397,27 @@
         </div>
     </div>
 
-    <!-- MODAL: Add Expense / Bill -->
-    <div id="addExpenseModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <!-- MODAL: Add/Edit Expense / Bill -->
+    <div id="expenseModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="bg-theme-card w-full max-w-sm rounded-2xl p-4 shadow-xl border border-theme-border space-y-3">
-            <h3 class="font-bold text-base">Add Expense / Bill</h3>
+            <h3 id="expenseModalTitle" class="font-bold text-base">Add Expense / Bill</h3>
             <input type="hidden" id="targetExpensePeriodId">
+            <input type="hidden" id="editExpenseId">
             <div>
                 <label class="block text-xs text-theme-muted mb-1">Title</label>
                 <input type="text" id="expenseTitle" placeholder="e.g. Groceries, Rent" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
             </div>
             <div>
                 <label class="block text-xs text-theme-muted mb-1">Category</label>
-                <select id="expenseCategory" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
-                    <option value="Bills">Bills & Utilities</option>
-                    <option value="Food">Food & Groceries</option>
-                    <option value="Transport">Transport</option>
-                    <option value="Subscriptions">Subscriptions</option>
-                    <option value="Health">Health & Personal</option>
-                    <option value="Misc">Miscellaneous</option>
-                </select>
+                <select id="expenseCategory" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm"></select>
             </div>
             <div>
                 <label class="block text-xs text-theme-muted mb-1">Amount (₱ PHP)</label>
                 <input type="number" id="expenseAmount" placeholder="0.00" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
             </div>
             <div class="flex space-x-2 pt-2">
-                <button onclick="closeAddExpenseModal()" class="flex-1 bg-theme-bg py-2 rounded-xl text-xs font-medium border border-theme-border">Cancel</button>
-                <button onclick="saveNewExpense()" class="flex-1 bg-theme-primary text-white py-2 rounded-xl text-xs font-medium">Save Bill</button>
+                <button onclick="closeExpenseModal()" class="flex-1 bg-theme-bg py-2 rounded-xl text-xs font-medium border border-theme-border">Cancel</button>
+                <button onclick="saveExpense()" class="flex-1 bg-theme-primary text-white py-2 rounded-xl text-xs font-medium">Save Bill</button>
             </div>
         </div>
     </div>
@@ -413,16 +427,22 @@
         <div class="bg-theme-card w-full max-w-sm rounded-2xl p-4 shadow-xl border border-theme-border space-y-3">
             <h3 class="font-bold text-base">Add Loan / Lender</h3>
             <div>
-                <label class="block text-xs text-theme-muted mb-1">Name of Loan / Lender</label>
+                <label class="block text-xs text-theme-muted mb-1">Lender / Loan Name</label>
                 <input type="text" id="loanLenderName" placeholder="e.g. Bank Loan" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
             </div>
             <div>
                 <label class="block text-xs text-theme-muted mb-1">Current Balance / Overdue (PHP)</label>
                 <input type="number" id="loanOverdueAmount" placeholder="0.00" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
             </div>
-            <div>
-                <label class="block text-xs text-theme-muted mb-1">Assign to Pay Period</label>
-                <select id="loanPeriodSelect" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm"></select>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-xs text-theme-muted mb-1">Due Date</label>
+                    <input type="date" id="loanDueDate" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs text-theme-muted mb-1">Monthly Due</label>
+                    <input type="number" id="loanMonthlyDue" placeholder="0.00" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+                </div>
             </div>
             <div class="flex space-x-2 pt-2">
                 <button onclick="closeAddLoanModal()" class="flex-1 bg-theme-bg py-2 rounded-xl text-xs font-medium border border-theme-border">Cancel</button>
@@ -455,7 +475,7 @@
             <h3 class="font-bold text-base">Add Amount Due</h3>
             <div>
                 <label class="block text-xs text-theme-muted mb-1">Description / Title</label>
-                <input type="text" id="ledgerDueTitleInput" placeholder="e.g. Monthly Bill, Penalty" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+                <input type="text" id="ledgerDueTitleInput" value="Monthly Bill" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
             </div>
             <div>
                 <label class="block text-xs text-theme-muted mb-1">Amount (₱ PHP)</label>
@@ -507,6 +527,11 @@
         let currentUser = null;
         let currentActiveLoanId = null;
 
+        // UI View State (Not saved to DB)
+        let uiState = {
+            collapsedPeriods: {}
+        };
+
         let appData = {
             theme: 'lilac',
             monthsData: {}, // Keyed by YYYY-MM: { expenses: [], incomes: {} }
@@ -518,6 +543,7 @@
                 dailyRate: 120, 
                 exchangeRate: 74.50,
                 payFrequency: 'Bi Monthly',
+                customCategories: ['Bills & Utilities', 'Food & Groceries', 'Transport', 'Subscriptions', 'Health & Personal', 'Miscellaneous'],
                 customPeriodNames: {
                     'Monthly': ['Full Month'],
                     'Bi Monthly': ['Mid-Month', 'End of Month'],
@@ -605,8 +631,12 @@
                     'Weekly': ['Week 1', 'Week 2', 'Week 3', 'Week 4']
                 };
             }
+            if (!appData.settings.customCategories) {
+                appData.settings.customCategories = ['Bills & Utilities', 'Food & Groceries', 'Transport', 'Subscriptions', 'Health & Personal', 'Miscellaneous'];
+            }
             setTheme(appData.theme, false);
             initSettingsUI();
+            populateCategoryDropdowns();
             renderAll();
         }
 
@@ -648,6 +678,7 @@
             document.getElementById(`nav-${tabId}`).className = 'flex flex-col items-center space-y-1 text-theme-primary';
             if (tabId === 'summary') renderSummaryTab();
             if (tabId === 'recurring') renderRecurringColumns();
+            if (tabId === 'settings') renderCategorySettings();
         }
 
         function switchRecurringSubTab(subTabId) {
@@ -723,6 +754,11 @@
             document.getElementById('payPeriodModeLabel').innerText = appData.settings.payFrequency || 'Bi Monthly';
         }
 
+        function togglePeriodVisibility(periodId) {
+            uiState.collapsedPeriods[periodId] = !uiState.collapsedPeriods[periodId];
+            renderPayPeriods();
+        }
+
         function renderPayPeriods() {
             const container = document.getElementById('payPeriodsContainer');
             container.innerHTML = '';
@@ -738,84 +774,142 @@
                 let periodExpenseTotal = periodExpenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
                 let periodMoneyLeft = periodIncomeTotal - periodExpenseTotal;
 
+                let isCollapsed = uiState.collapsedPeriods[period.id] || false;
+
                 let card = document.createElement('div');
-                card.className = 'bg-theme-card border border-theme-border rounded-2xl p-4 shadow-sm space-y-3';
+                card.className = 'bg-theme-card border border-theme-border rounded-2xl p-4 shadow-sm space-y-3 transition-all';
                 
                 let html = `
-                    <div class="flex justify-between items-center border-b border-theme-border pb-2">
+                    <div class="flex justify-between items-center ${isCollapsed ? '' : 'border-b border-theme-border pb-2'}">
                         <div>
                             <h4 class="font-bold text-sm">${period.name}</h4>
                             <span class="text-[10px] bg-theme-accent text-theme-primary px-2 py-0.5 rounded-md font-semibold">${period.type}</span>
                         </div>
+                        <button onclick="togglePeriodVisibility('${period.id}')" class="w-8 h-8 rounded-full bg-theme-bg text-theme-muted hover:text-theme-primary flex items-center justify-center transition">
+                            <i class="fa-solid ${isCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'}"></i>
+                        </button>
                     </div>
-                    <!-- Mini Period Summary -->
-                    <div class="grid grid-cols-2 gap-2 bg-theme-bg p-2.5 rounded-xl border border-theme-border text-xs">
-                        <div>
-                            <span class="text-[10px] text-theme-muted block">Money Left</span>
-                            <span class="font-bold text-emerald-600">${formatPHP(periodMoneyLeft)}</span>
-                        </div>
-                        <div>
-                            <span class="text-[10px] text-theme-muted block">Total Expenses</span>
-                            <span class="font-bold text-rose-600">${formatPHP(periodExpenseTotal)}</span>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="flex justify-between items-center text-xs text-theme-muted mb-1 font-semibold">
-                            <span>Incomes (${pIncomes.length})</span>
-                            <button onclick="openAddIncomeModalPrompt('${period.id}')" class="text-theme-primary">+ Add Income</button>
-                        </div>
-                        <div class="space-y-1">
                 `;
 
-                pIncomes.forEach((inc, idx) => {
+                if (!isCollapsed) {
                     html += `
-                        <div class="flex justify-between items-center text-xs bg-theme-bg px-2.5 py-1.5 rounded-lg border border-theme-border">
-                            <span>${inc.title}</span>
-                            <div class="flex items-center space-x-2">
-                                <span class="font-semibold text-emerald-600">${formatPHP(inc.amount)}</span>
-                                <button onclick="deleteIncome('${period.id}', ${idx})" class="text-rose-400 hover:text-rose-600"><i class="fa-solid fa-xmark"></i></button>
+                        <!-- Mini Period Summary -->
+                        <div class="grid grid-cols-2 gap-2 bg-theme-bg p-2.5 rounded-xl border border-theme-border text-xs">
+                            <div>
+                                <span class="text-[10px] text-theme-muted block">Money Left</span>
+                                <span class="font-bold text-emerald-600">${formatPHP(periodMoneyLeft)}</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-theme-muted block">Total Expenses</span>
+                                <span class="font-bold text-rose-600">${formatPHP(periodExpenseTotal)}</span>
                             </div>
                         </div>
+                        <div>
+                            <div class="flex justify-between items-center text-xs text-theme-muted mb-1 font-semibold">
+                                <span>Incomes (${pIncomes.length})</span>
+                                <button onclick="openAddIncomeModalPrompt('${period.id}')" class="text-theme-primary">+ Add Income</button>
+                            </div>
+                            <div class="space-y-1">
                     `;
-                });
 
-                html += `</div></div><div>
-                        <div class="flex justify-between items-center text-xs text-theme-muted mb-1 font-semibold">
-                            <span>Expenses & Bills</span>
-                            <button onclick="openAddExpenseModalPrompt('${period.id}')" class="text-theme-primary">+ Add Bill</button>
-                        </div>
-                        <div class="space-y-1.5">
-                `;
-
-                if (periodExpenses.length === 0) {
-                    html += `<p class="text-xs text-theme-muted italic">No expenses linked to this period.</p>`;
-                }
-
-                periodExpenses.forEach(exp => {
-                    html += `
-                        <div class="flex justify-between items-center text-xs bg-theme-bg px-2.5 py-2 rounded-lg border border-theme-border ${exp.isPaid ? 'opacity-60 bg-emerald-50/50' : ''}">
-                            <div class="flex items-center space-x-2">
-                                <button onclick="toggleExpensePaid('${exp.id}')" class="text-base ${exp.isPaid ? 'text-emerald-600' : 'text-theme-muted'}">
-                                    <i class="fa-regular ${exp.isPaid ? 'fa-square-check' : 'fa-square'}"></i>
-                                </button>
-                                <div>
-                                    <span class="font-medium ${exp.isPaid ? 'line-through' : ''}">${exp.title}</span>
-                                    <span class="block text-[10px] text-theme-muted">${exp.category || 'General'}</span>
+                    pIncomes.forEach((inc, idx) => {
+                        html += `
+                            <div class="flex justify-between items-center text-xs bg-theme-bg px-2.5 py-1.5 rounded-lg border border-theme-border">
+                                <span>${inc.title}</span>
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-semibold text-emerald-600">${formatPHP(inc.amount)}</span>
+                                    <button onclick="deleteIncome('${period.id}', ${idx})" class="text-rose-400 hover:text-rose-600"><i class="fa-solid fa-xmark"></i></button>
                                 </div>
                             </div>
-                            <div class="flex items-center space-x-2">
-                                <span class="font-semibold text-rose-600">${formatPHP(exp.amount)}</span>
-                                <button onclick="deleteExpense('${exp.id}')" class="text-rose-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>
-                            </div>
-                        </div>
-                    `;
-                });
+                        `;
+                    });
 
-                html += `</div></div>`;
+                    html += `</div></div><div>
+                            <div class="flex justify-between items-center text-xs text-theme-muted mb-1 font-semibold">
+                                <span>Expenses & Bills</span>
+                                <button onclick="openExpenseModal('${period.id}')" class="text-theme-primary">+ Add Bill</button>
+                            </div>
+                            <div class="space-y-1.5">
+                    `;
+
+                    if (periodExpenses.length === 0) {
+                        html += `<p class="text-xs text-theme-muted italic">No expenses linked to this period.</p>`;
+                    }
+
+                    periodExpenses.forEach(exp => {
+                        html += `
+                            <div class="flex justify-between items-center text-xs bg-theme-bg px-2.5 py-2 rounded-lg border border-theme-border ${exp.isPaid ? 'opacity-60 bg-emerald-50/50' : ''}">
+                                <div class="flex items-center space-x-2">
+                                    <button onclick="toggleExpensePaid('${exp.id}')" class="text-base ${exp.isPaid ? 'text-emerald-600' : 'text-theme-muted'}">
+                                        <i class="fa-regular ${exp.isPaid ? 'fa-square-check' : 'fa-square'}"></i>
+                                    </button>
+                                    <div>
+                                        <span class="font-medium ${exp.isPaid ? 'line-through' : ''}">${exp.title}</span>
+                                        <span class="block text-[10px] text-theme-muted">${exp.category || 'General'}</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-semibold text-rose-600">${formatPHP(exp.amount)}</span>
+                                    <button onclick="openExpenseModal('${period.id}', '${exp.id}')" class="text-blue-400 hover:text-blue-600 ml-1"><i class="fa-solid fa-pen"></i></button>
+                                    <button onclick="deleteExpense('${exp.id}')" class="text-rose-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    html += `</div></div>`;
+                }
+                
                 card.innerHTML = html;
                 container.appendChild(card);
             });
         }
+
+        // Custom Categories Setup
+        function populateCategoryDropdowns() {
+            let select = document.getElementById('expenseCategory');
+            select.innerHTML = '';
+            appData.settings.customCategories.forEach(cat => {
+                let opt = document.createElement('option');
+                opt.value = cat;
+                opt.innerText = cat;
+                select.appendChild(opt);
+            });
+        }
+
+        function renderCategorySettings() {
+            const list = document.getElementById('categoryConfigList');
+            list.innerHTML = '';
+            appData.settings.customCategories.forEach((cat, idx) => {
+                let div = document.createElement('div');
+                div.className = 'flex justify-between items-center bg-theme-bg border border-theme-border px-3 py-1.5 rounded-xl text-xs';
+                div.innerHTML = `
+                    <span>${cat}</span>
+                    <button onclick="deleteCustomCategory(${idx})" class="text-rose-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function addCustomCategory() {
+            let input = document.getElementById('newCategoryInput');
+            let val = input.value.trim();
+            if(val && !appData.settings.customCategories.includes(val)) {
+                appData.settings.customCategories.push(val);
+                input.value = '';
+                saveData();
+                renderCategorySettings();
+                populateCategoryDropdowns();
+            }
+        }
+
+        function deleteCustomCategory(idx) {
+            appData.settings.customCategories.splice(idx, 1);
+            saveData();
+            renderCategorySettings();
+            populateCategoryDropdowns();
+        }
+
 
         function renderRecurringColumns() {
             const container = document.getElementById('recurringColumnsContainer');
@@ -832,7 +926,7 @@
                 let html = `
                     <div class="flex justify-between items-center border-b border-theme-border pb-2">
                         <h4 class="font-bold text-sm text-theme-primary">${period.name}</h4>
-                        <button onclick="openAddExpenseModalPrompt('${period.id}')" class="text-xs bg-theme-primary text-white px-2.5 py-1 rounded-lg font-medium">+ Add Expense</button>
+                        <button onclick="openExpenseModal('${period.id}')" class="text-xs bg-theme-primary text-white px-2.5 py-1 rounded-lg font-medium">+ Add Expense</button>
                     </div>
                     <div class="space-y-2">
                 `;
@@ -850,6 +944,7 @@
                             </div>
                             <div class="flex items-center space-x-2">
                                 <span class="font-semibold text-rose-600">${formatPHP(exp.amount)}</span>
+                                <button onclick="openExpenseModal('${period.id}', '${exp.id}')" class="text-blue-400 hover:text-blue-600 ml-1"><i class="fa-solid fa-pen"></i></button>
                                 <button onclick="deleteExpense('${exp.id}')" class="text-rose-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </div>
@@ -870,7 +965,7 @@
 
             let catTotals = {};
             mData.expenses.forEach(e => {
-                let cat = e.category || 'Misc';
+                let cat = e.category || 'Miscellaneous';
                 catTotals[cat] = (catTotals[cat] || 0) + Number(e.amount || 0);
             });
 
@@ -927,25 +1022,58 @@
             }
         }
 
-        function openAddExpenseModalPrompt(periodId) {
+        // Unified Add/Edit Expense
+        function openExpenseModal(periodId, expenseId = null) {
             document.getElementById('targetExpensePeriodId').value = periodId;
-            document.getElementById('expenseTitle').value = '';
-            document.getElementById('expenseAmount').value = '';
-            document.getElementById('addExpenseModal').classList.remove('hidden');
+            document.getElementById('editExpenseId').value = expenseId || '';
+            
+            if (expenseId) {
+                let mData = getActiveMonthData();
+                let exp = mData.expenses.find(e => e.id === expenseId);
+                if (exp) {
+                    document.getElementById('expenseModalTitle').innerText = 'Edit Expense / Bill';
+                    document.getElementById('expenseTitle').value = exp.title;
+                    document.getElementById('expenseCategory').value = exp.category;
+                    document.getElementById('expenseAmount').value = exp.amount;
+                }
+            } else {
+                document.getElementById('expenseModalTitle').innerText = 'Add Expense / Bill';
+                document.getElementById('expenseTitle').value = '';
+                document.getElementById('expenseCategory').selectedIndex = 0;
+                document.getElementById('expenseAmount').value = '';
+            }
+            
+            document.getElementById('expenseModal').classList.remove('hidden');
         }
-        function closeAddExpenseModal() { document.getElementById('addExpenseModal').classList.add('hidden'); }
-        function saveNewExpense() {
+
+        function closeExpenseModal() { document.getElementById('expenseModal').classList.add('hidden'); }
+        
+        function saveExpense() {
             let title = document.getElementById('expenseTitle').value;
             let category = document.getElementById('expenseCategory').value;
             let amount = Number(document.getElementById('expenseAmount').value);
             let periodId = document.getElementById('targetExpensePeriodId').value;
+            let editId = document.getElementById('editExpenseId').value;
+
             if (!title || !amount || !periodId) return;
 
             let mData = getActiveMonthData();
-            mData.expenses.push({ id: Date.now().toString(), title, category, amount, periodId, isPaid: false });
-            closeAddExpenseModal();
+            
+            if (editId) {
+                let exp = mData.expenses.find(e => e.id === editId);
+                if (exp) {
+                    exp.title = title;
+                    exp.category = category;
+                    exp.amount = amount;
+                }
+            } else {
+                mData.expenses.push({ id: Date.now().toString(), title, category, amount, periodId, isPaid: false });
+            }
+
+            closeExpenseModal();
             saveData();
         }
+
         function deleteExpense(id) {
             let mData = getActiveMonthData();
             mData.expenses = mData.expenses.filter(e => e.id !== id);
@@ -969,12 +1097,7 @@
                 return;
             }
 
-            let periods = getActivePeriods();
-
             appData.loans.forEach(loan => {
-                let periodObj = periods.find(p => p.id === loan.periodId);
-                let periodName = periodObj ? periodObj.name : 'Unassigned';
-
                 let div = document.createElement('div');
                 div.className = 'bg-theme-card border border-theme-border rounded-xl p-3.5 space-y-2 shadow-sm cursor-pointer hover:border-theme-primary transition';
                 div.onclick = () => openLoanLedgerModal(loan.id);
@@ -988,8 +1111,8 @@
                         <button onclick="event.stopPropagation(); deleteLoan('${loan.id}')" class="text-rose-400 text-xs hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>
                     </div>
                     <div class="flex justify-between text-xs pt-1">
-                        <span class="text-theme-muted">Balance / Overdue: <strong class="text-rose-600">${formatPHP(loan.overdueAmount)}</strong></span>
-                        <span class="bg-theme-accent text-theme-primary px-2 py-0.5 rounded text-[10px] font-semibold">Period: ${periodName}</span>
+                        <span class="text-theme-muted">Balance: <strong class="text-rose-600">${formatPHP(loan.overdueAmount)}</strong></span>
+                        <span class="bg-theme-accent text-theme-primary px-2 py-0.5 rounded text-[10px] font-semibold">Monthly Due: ${formatPHP(loan.monthlyAmountDue || 0)}</span>
                     </div>
                     <p class="text-[10px] text-theme-accent text-right font-medium">Click to view Waterfall Ledger &rarr;</p>
                 `;
@@ -998,34 +1121,30 @@
         }
 
         function openAddLoanModal() {
-            let select = document.getElementById('loanPeriodSelect');
-            select.innerHTML = '';
-            let periods = getActivePeriods();
-            periods.forEach(p => {
-                let opt = document.createElement('option');
-                opt.value = p.id;
-                opt.innerText = p.name;
-                select.appendChild(opt);
-            });
             document.getElementById('loanLenderName').value = '';
             document.getElementById('loanOverdueAmount').value = '';
+            document.getElementById('loanDueDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('loanMonthlyDue').value = '';
             document.getElementById('addLoanModal').classList.remove('hidden');
         }
         function closeAddLoanModal() { document.getElementById('addLoanModal').classList.add('hidden'); }
         function saveNewLoan() {
             let lender = document.getElementById('loanLenderName').value;
             let overdueAmount = Number(document.getElementById('loanOverdueAmount').value);
-            let periodId = document.getElementById('loanPeriodSelect').value;
-            if (!lender || !periodId) return;
+            let dueDate = document.getElementById('loanDueDate').value;
+            let monthlyAmountDue = Number(document.getElementById('loanMonthlyDue').value);
+            
+            if (!lender) return;
 
             if (!appData.loans) appData.loans = [];
             appData.loans.push({
                 id: Date.now().toString(),
                 lender,
                 overdueAmount,
-                periodId,
+                dueDate,
+                monthlyAmountDue,
                 entries: [
-                    { type: 'due', date: new Date().toISOString().split('T')[0], amount: overdueAmount, title: 'Initial Overdue' }
+                    { type: 'due', date: dueDate || new Date().toISOString().split('T')[0], amount: overdueAmount, title: 'Initial Overdue' }
                 ]
             });
             closeAddLoanModal();
@@ -1057,9 +1176,10 @@
             container.innerHTML = '';
 
             if (!loan.entries) {
-                loan.entries = [{ type: 'due', date: new Date().toISOString().split('T')[0], amount: loan.overdueAmount, title: 'Initial Overdue' }];
+                loan.entries = [{ type: 'due', date: loan.dueDate || new Date().toISOString().split('T')[0], amount: loan.overdueAmount, title: 'Initial Overdue' }];
             }
 
+            // Sort chronologically by date
             loan.entries.sort((a, b) => new Date(a.date) - new Date(b.date));
             let runningBalance = 0;
 
@@ -1071,6 +1191,8 @@
                 let rowDiv = document.createElement('div');
                 rowDiv.className = `p-3 rounded-xl border border-theme-border text-xs space-y-1 ${isPayment ? 'bg-emerald-50/60 border-emerald-200' : 'bg-theme-bg'}`;
                 
+                let dateDisplay = isPayment ? `Paid: ${entry.date}` : `Due: ${entry.date}`;
+
                 rowDiv.innerHTML = `
                     <div class="flex justify-between items-center font-bold">
                         <span class="${isPayment ? 'text-emerald-700' : 'text-theme-primary'}">
@@ -1082,7 +1204,7 @@
                         </div>
                     </div>
                     <div class="flex justify-between text-[10px] text-theme-muted">
-                        <span>Date: ${entry.date}</span>
+                        <span>${dateDisplay}</span>
                         <span class="font-bold ${runningBalance < 0 ? 'text-blue-600' : 'text-theme-text'}">Running Balance: ${formatPHP(runningBalance)} ${runningBalance < 0 ? '(Credit)' : ''}</span>
                     </div>
                 `;
@@ -1091,12 +1213,34 @@
         }
 
         function openLedgerAddDueModal() {
+            let loan = appData.loans.find(l => l.id === currentActiveLoanId);
             document.getElementById('ledgerDueTitleInput').value = 'Monthly Bill';
-            document.getElementById('ledgerDueAmountInput').value = '';
-            document.getElementById('ledgerDueDateInput').value = new Date().toISOString().split('T')[0];
+            document.getElementById('ledgerDueAmountInput').value = loan && loan.monthlyAmountDue ? loan.monthlyAmountDue : '';
+            
+            // Calculate next due date automatically (+1 month to the latest due entry)
+            let nextDateStr = new Date().toISOString().split('T')[0];
+            if (loan && loan.entries) {
+                let dueEntries = loan.entries.filter(e => e.type === 'due');
+                if (dueEntries.length > 0) {
+                    dueEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    let latestDate = dueEntries[0].date;
+                    let [y, m, d] = latestDate.split('-').map(Number);
+                    m += 1;
+                    if (m > 12) { m = 1; y += 1; }
+                    let daysInNextMonth = new Date(y, m, 0).getDate();
+                    let nextD = Math.min(d, daysInNextMonth);
+                    nextDateStr = `${y}-${String(m).padStart(2, '0')}-${String(nextD).padStart(2, '0')}`;
+                } else if (loan.dueDate) {
+                    nextDateStr = loan.dueDate;
+                }
+            }
+
+            document.getElementById('ledgerDueDateInput').value = nextDateStr;
             document.getElementById('addLedgerDueModal').classList.remove('hidden');
         }
+
         function closeLedgerAddDueModal() { document.getElementById('addLedgerDueModal').classList.add('hidden'); }
+        
         function saveLedgerDue() {
             let title = document.getElementById('ledgerDueTitleInput').value;
             let amount = Number(document.getElementById('ledgerDueAmountInput').value);
@@ -1123,10 +1267,12 @@
                 select.appendChild(opt);
             });
             document.getElementById('ledgerPaymentAmountInput').value = '';
-            document.getElementById('ledgerPaymentDateInput').value = new Date().toISOString().split('T')[0];
+            document.getElementById('ledgerPaymentDateInput').value = new Date().toISOString().split('T')[0]; // Default to today
             document.getElementById('addLedgerPaymentModal').classList.remove('hidden');
         }
+
         function closeLedgerAddPaymentModal() { document.getElementById('addLedgerPaymentModal').classList.add('hidden'); }
+        
         function saveLedgerPayment() {
             let amount = Number(document.getElementById('ledgerPaymentAmountInput').value);
             let date = document.getElementById('ledgerPaymentDateInput').value;
@@ -1141,7 +1287,7 @@
                 loan.entries.push({
                     type: 'payment',
                     amount,
-                    date,
+                    date, // Captured from user input for chronological sorting
                     periodId: chosenPeriod.id,
                     periodName: chosenPeriod.name
                 });
@@ -1150,7 +1296,7 @@
                 mData.expenses.push({
                     id: Date.now().toString(),
                     title: `Loan Payment: ${loan.lender}`,
-                    category: 'Bills',
+                    category: 'Bills & Utilities', // Automatically grouped to standard category
                     amount,
                     periodId: chosenPeriod.id,
                     isPaid: false
