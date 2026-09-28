@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -87,7 +89,7 @@
             </div>
             <div>
                 <h1 class="font-bold text-base leading-tight">LifeHub</h1>
-                <p class="text-xs text-theme-muted">Local Currency: ₱ PHP</p>
+                <p id="syncStatusIndicator" class="text-xs text-theme-muted">Local Currency: ₱ PHP</p>
             </div>
         </div>
         <div class="flex items-center space-x-2">
@@ -273,22 +275,6 @@
                         <input type="number" id="settingExchangeRate" value="74.50" step="0.1" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
                     </div>
                     <button onclick="saveSettings()" class="w-full bg-theme-primary text-white py-2 rounded-xl text-xs font-medium">Save Settings</button>
-                </div>
-
-                <hr class="border-theme-border">
-
-                <!-- Supabase Cloud Backup -->
-                <div class="space-y-3">
-                    <h3 class="font-bold text-xs uppercase tracking-wider text-theme-muted">Supabase Data Storage</h3>
-                    <div>
-                        <label class="block text-xs text-theme-muted mb-1">Supabase URL</label>
-                        <input type="text" id="supabaseUrl" placeholder="https://xyz.supabase.co" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-theme-muted mb-1">Supabase Anon Key</label>
-                        <input type="password" id="supabaseKey" placeholder="eyJ..." class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-xs">
-                    </div>
-                    <button onclick="alert('Supabase credentials saved locally!')" class="w-full bg-theme-accent text-theme-primary py-2 rounded-xl text-xs font-medium">Connect Supabase</button>
                 </div>
             </div>
         </section>
@@ -524,6 +510,11 @@
 
     <!-- JavaScript Application Logic -->
     <script>
+        // Supabase Credentials Hardcoded Here
+        const SUPABASE_URL = "https://burvheyxcjgrotqjmmbl.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1cnZoZXl4Y2pncm90cWptbWJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2MTEyNDMsImV4cCI6MjEwNjE4NzI0M30.ETKUDlMXSQzEE30i3Zop9mV_Ok86IOyb0ijJKWJYKGc";
+        let sb = null;
+
         // App State
         let appData = {
             theme: 'lilac',
@@ -561,8 +552,18 @@
 
         let currentActiveLoanId = null;
 
-        // Load from LocalStorage
+        // Initialize Supabase & App
         function initApp() {
+            if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+                try {
+                    sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    document.getElementById('syncStatusIndicator').innerText = "Supabase Connected ✓";
+                } catch(e) {
+                    console.error("Supabase init error:", e);
+                    document.getElementById('syncStatusIndicator').innerText = "Supabase Connection Error";
+                }
+            }
+
             const saved = localStorage.getItem('lifehub_budget_data_v1');
             if (saved) {
                 try { appData = JSON.parse(saved); } catch(e) {}
