@@ -1,0 +1,992 @@
+    <!-- Status Bar -->
+    <div class="w-full h-11 bg-transparent flex justify-between items-center px-6 pt-2 text-sm font-semibold z-30 select-none">
+        <span id="current-time">9:41</span>
+        <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-signal text-xs"></i>
+            <i class="fa-solid fa-wifi text-xs"></i>
+            <i class="fa-solid fa-battery-full text-sm"></i>
+            <span id="sync-status" class="w-2 h-2 rounded-full bg-emerald-500 inline-block" title="Local Storage Active"></span>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="px-5 py-3 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-20 border-b border-gray-100">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-gray-900" id="app-title">Pay Periods</h1>
+            <p class="text-xs text-gray-500 font-medium" id="app-subtitle">Local Currency Income & Expense Overview</p>
+        </div>
+        <button onclick="openNotesManagerModal()" class="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 transition shadow-sm active:scale-95 relative" title="Multi-Notes">
+            <i class="fa-solid fa-note-sticky text-base"></i>
+            <span id="notes-badge-count" class="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">0</span>
+        </button>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto pb-28 px-4 pt-4 space-y-4">
+        
+        <!-- TAB 1: PAY PERIODS -->
+        <section id="view-pay-periods" class="space-y-4">
+            <div id="summary-card" class="p-5 rounded-2xl shadow-lg relative overflow-hidden text-white transition-colors duration-300">
+                <div class="absolute -right-4 -bottom-4 opacity-10 text-8xl">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-[11px] uppercase tracking-wider font-semibold opacity-90">Money Left (<span class="bank-curr-label">PHP</span>)</p>
+                        <h2 class="text-2xl font-extrabold mt-0.5" id="summary-money-left">₱0.00</h2>
+                    </div>
+                    <div>
+                        <p class="text-[11px] uppercase tracking-wider font-semibold opacity-90">Total Expenses</p>
+                        <h2 class="text-2xl font-extrabold mt-0.5" id="summary-total-expenses">₱0.00</h2>
+                    </div>
+                </div>
+                <div class="mt-3 flex items-center justify-between text-xs opacity-90 border-t border-white/20 pt-2">
+                    <span>Active Pay Periods</span>
+                    <span id="period-count-badge" class="font-bold bg-black/20 px-2 py-0.5 rounded-full">0 / 4</span>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center px-1">
+                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Pay Periods (Max 4)</h3>
+                <button onclick="openPayPeriodModal()" id="add-period-btn" class="text-xs font-semibold hover:underline flex items-center gap-1">
+                    <i class="fa-solid fa-circle-plus"></i> Add Pay Period
+                </button>
+            </div>
+
+            <div id="pay-periods-list" class="space-y-4"></div>
+
+            <div id="pay-periods-empty" class="hidden text-center py-10 bg-gray-50 rounded-2xl border border-gray-100 p-6">
+                <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">
+                    <i class="fa-solid fa-calendar-days"></i>
+                </div>
+                <h4 class="font-semibold text-gray-800">No Pay Periods Configured</h4>
+                <p class="text-xs text-gray-400 mt-1">Add a pay period to start tracking your local currency incomes and expenses.</p>
+                <button onclick="openPayPeriodModal()" class="mt-4 bg-emerald-600 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow hover:bg-emerald-700 transition">Add Pay Period</button>
+            </div>
+        </section>
+
+        <!-- TAB 2: RECURRING -->
+        <section id="view-recurring" class="space-y-4 hidden">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-sm font-bold text-gray-800">Recurring Bills & Subscriptions</h3>
+                    <button onclick="openRecurringModal()" class="text-xs font-semibold text-emerald-600 hover:underline flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> Add Recurring
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500">Recurring expenses automatically sync into the Pay Period you assign them to in local currency.</p>
+            </div>
+            <div id="recurring-list" class="space-y-3"></div>
+        </section>
+
+        <!-- TAB 3: TIME COST CALCULATOR -->
+        <section id="view-calculator" class="space-y-4 hidden">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                <div>
+                    <h3 class="text-base font-bold text-gray-900">Time Expense Calculator</h3>
+                    <p class="text-xs text-gray-500 mt-0.5">Calculates work hours & days required using Settings exchange rates and earning rates (Independent of salaries).</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Expense Amount (<span class="bank-curr-label">PHP</span> - Local Currency)</label>
+                    <input type="number" step="0.01" id="calc-amount-input" placeholder="e.g. 5000.00" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500 transition">
+                </div>
+                <button onclick="calculateTimeExpense()" class="w-full bg-gray-900 hover:bg-black text-white font-semibold py-3.5 rounded-xl shadow transition">Calculate Cost in Time</button>
+            </div>
+
+            <div id="calc-result-card" class="hidden bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-3 text-center">
+                <p class="text-xs text-gray-400 uppercase font-semibold">Cost Breakdown</p>
+                <div class="grid grid-cols-2 gap-4 py-2">
+                    <div class="bg-gray-50 p-3 rounded-xl">
+                        <span class="text-2xl font-extrabold text-gray-800" id="res-hours">0.0</span>
+                        <p class="text-xs text-gray-500 mt-1">Hours of Work</p>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-xl">
+                        <span class="text-2xl font-extrabold text-gray-800" id="res-days">0.0</span>
+                        <p class="text-xs text-gray-500 mt-1">Days of Work</p>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500" id="res-converted-text">Equivalent: 0.00 GBP</p>
+            </div>
+        </section>
+
+        <!-- TAB 4: REMINDERS -->
+        <section id="view-reminders" class="space-y-4 hidden">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-bold text-gray-800">Lock Screen & Shortcuts Reminders</h3>
+                    <button onclick="openReminderModal()" class="text-xs font-semibold text-emerald-600 hover:underline flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> Add Reminder
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 leading-relaxed">
+                    Customize reminders below. Pull these into the iOS <strong>Shortcuts</strong> app to display as a Lock Screen widget daily.
+                </p>
+            </div>
+            <div id="reminders-list" class="space-y-3"></div>
+        </section>
+
+        <!-- TAB 5: SETTINGS -->
+        <section id="view-settings" class="space-y-4 hidden">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-3">
+                <h3 class="text-sm font-bold text-gray-800">Pastel Color Theme</h3>
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <button onclick="setTheme('mint')" class="p-3 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 font-semibold text-xs flex items-center justify-center gap-2 hover:shadow">
+                        <span class="w-3 h-3 rounded-full bg-emerald-500"></span> Soft Mint
+                    </button>
+                    <button onclick="setTheme('lilac')" class="p-3 rounded-xl border border-purple-200 bg-purple-50 text-purple-800 font-semibold text-xs flex items-center justify-center gap-2 hover:shadow">
+                        <span class="w-3 h-3 rounded-full bg-purple-500"></span> Lilac Dream
+                    </button>
+                    <button onclick="setTheme('peach')" class="p-3 rounded-xl border border-orange-200 bg-orange-50 text-orange-800 font-semibold text-xs flex items-center justify-center gap-2 hover:shadow">
+                        <span class="w-3 h-3 rounded-full bg-orange-500"></span> Peach Blush
+                    </button>
+                    <button onclick="setTheme('skyblue')" class="p-3 rounded-xl border border-sky-200 bg-sky-50 text-sky-800 font-semibold text-xs flex items-center justify-center gap-2 hover:shadow">
+                        <span class="w-3 h-3 rounded-full bg-sky-500"></span> Sky Blue
+                    </button>
+                    <button onclick="setTheme('rose')" class="col-span-2 p-3 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 font-semibold text-xs flex items-center justify-center gap-2 hover:shadow">
+                        <span class="w-3 h-3 rounded-full bg-rose-500"></span> Rose Quartz
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-3">
+                <h3 class="text-sm font-bold text-gray-800">Time Calculator Rates (Strictly for Time Cost Tab)</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-gray-500 uppercase mb-1">Hourly Rate</label>
+                        <input type="number" step="0.01" id="setting-hourly" onchange="saveSettings()" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-gray-500 uppercase mb-1">Daily Rate</label>
+                        <input type="number" step="0.01" id="setting-daily" onchange="saveSettings()" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 pt-2">
+                    <div>
+                        <label class="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Earn Currency</label>
+                        <input type="text" id="setting-earn-curr" onchange="saveSettings()" placeholder="GBP" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm uppercase outline-none focus:border-emerald-500 text-center font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Local Currency</label>
+                        <input type="text" id="setting-bank-curr" onchange="saveSettings()" placeholder="PHP" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm uppercase outline-none focus:border-emerald-500 text-center font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Exchange Rate</label>
+                        <input type="number" step="0.01" id="setting-ex-rate" onchange="saveSettings()" placeholder="74.50" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-emerald-500 text-center font-bold">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-bold text-gray-800">Supabase Cloud Storage</h3>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="setting-use-supabase" onchange="toggleSupabaseMode()" class="sr-only peer">
+                        <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                    </label>
+                </div>
+                <p class="text-[11px] text-gray-500">Connect your Supabase project credentials to sync budgets, multi-notes, and reminders to the cloud.</p>
+                <div class="space-y-2 pt-1">
+                    <div>
+                        <label class="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Supabase URL</label>
+                        <input type="text" id="setting-supabase-url" onchange="saveSettings()" placeholder="https://xyzproject.supabase.co" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-emerald-500 font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Supabase Anon Key</label>
+                        <input type="password" id="setting-supabase-key" onchange="saveSettings()" placeholder="eyJhbGciOi..." class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-emerald-500 font-mono">
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="absolute bottom-0 left-0 right-0 h-20 bg-white/90 backdrop-blur-xl border-t border-gray-200/80 flex justify-around items-start pt-2 z-20">
+        <button onclick="switchTab('pay-periods')" id="tab-btn-pay-periods" class="flex flex-col items-center flex-1 text-emerald-600 transition">
+            <i class="fa-solid fa-wallet text-lg mb-1"></i>
+            <span class="text-[10px] font-semibold">Periods</span>
+        </button>
+        <button onclick="switchTab('recurring')" id="tab-btn-recurring" class="flex flex-col items-center flex-1 text-gray-400 hover:text-gray-600 transition">
+            <i class="fa-solid fa-repeat text-lg mb-1"></i>
+            <span class="text-[10px] font-semibold">Recurring</span>
+        </button>
+        <button onclick="switchTab('calculator')" id="tab-btn-calculator" class="flex flex-col items-center flex-1 text-gray-400 hover:text-gray-600 transition">
+            <i class="fa-solid fa-clock-rotate-left text-lg mb-1"></i>
+            <span class="text-[10px] font-semibold">Time Cost</span>
+        </button>
+        <button onclick="switchTab('reminders')" id="tab-btn-reminders" class="flex flex-col items-center flex-1 text-gray-400 hover:text-gray-600 transition">
+            <i class="fa-solid fa-bell text-lg mb-1"></i>
+            <span class="text-[10px] font-semibold">Reminders</span>
+        </button>
+        <button onclick="switchTab('settings')" id="tab-btn-settings" class="flex flex-col items-center flex-1 text-gray-400 hover:text-gray-600 transition">
+            <i class="fa-solid fa-gear text-lg mb-1"></i>
+            <span class="text-[10px] font-semibold">Settings</span>
+        </button>
+    </nav>
+
+    <!-- Modals -->
+    <div id="modal-pay-period" class="fixed inset-0 ios-backdrop z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+        <div class="bg-white w-full sm:max-w-md rounded-t-[32px] sm:rounded-3xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+                <h3 class="text-lg font-bold">Add Pay Period</h3>
+                <button onclick="closePayPeriodModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="savePayPeriod(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Period Name</label>
+                    <input type="text" id="pp-name" required placeholder="e.g. 1st Half / Mid-Month" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Type</label>
+                    <select id="pp-type" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500">
+                        <option value="Mid-Month">Mid-Month</option>
+                        <option value="Weekly">Weekly</option>
+                        <option value="Monthly">Monthly</option>
+                    </select>
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3.5 rounded-2xl shadow transition">Save Pay Period</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-income" class="fixed inset-0 ios-backdrop z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+        <div class="bg-white w-full sm:max-w-md rounded-t-[32px] sm:rounded-3xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+                <h3 class="text-lg font-bold">Add Income Source</h3>
+                <button onclick="closeIncomeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="saveIncomeSource(event)" class="space-y-4">
+                <input type="hidden" id="income-pp-id">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Income Title</label>
+                    <input type="text" id="inc-title" required placeholder="e.g. Salary, Freelance" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Amount (<span class="bank-curr-label">PHP</span>)</label>
+                    <input type="number" step="0.01" id="inc-amount" required placeholder="0.00" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500">
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3.5 rounded-2xl shadow transition">Add Income</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-expense" class="fixed inset-0 ios-backdrop z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+        <div class="bg-white w-full sm:max-w-md rounded-t-[32px] sm:rounded-3xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+                <h3 class="text-lg font-bold" id="expense-modal-title">Add Expense or Loan</h3>
+                <button onclick="closeExpenseModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="saveExpenseItem(event)" class="space-y-4">
+                <input type="hidden" id="exp-pp-id">
+                <input type="hidden" id="exp-edit-id">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Expense / Loan Title</label>
+                    <input type="text" id="exp-title" required placeholder="e.g. Groceries, Credit Card Loan" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Amount (<span class="bank-curr-label">PHP</span>)</label>
+                    <input type="number" step="0.01" id="exp-amount" required placeholder="0.00" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Category Type</label>
+                    <select id="exp-type" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500">
+                        <option value="manual">Manual Expense</option>
+                        <option value="loan">Loan Repayment</option>
+                    </select>
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3.5 rounded-2xl shadow transition">Save Expense</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-recurring" class="fixed inset-0 ios-backdrop z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+        <div class="bg-white w-full sm:max-w-md rounded-t-[32px] sm:rounded-3xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+                <h3 class="text-lg font-bold">Add Recurring Bill</h3>
+                <button onclick="closeRecurringModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="saveRecurringPayment(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Bill Title</label>
+                    <input type="text" id="rec-title" required placeholder="e.g. Netflix, Rent" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Amount (<span class="bank-curr-label">PHP</span>)</label>
+                    <input type="number" step="0.01" id="rec-amount" required placeholder="0.00" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Assign to Pay Period</label>
+                    <select id="rec-period-name" required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500"></select>
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3.5 rounded-2xl shadow transition">Save Recurring Bill</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-reminder" class="fixed inset-0 ios-backdrop z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+        <div class="bg-white w-full sm:max-w-md rounded-t-[32px] sm:rounded-3xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+                <h3 class="text-lg font-bold">Add Reminder</h3>
+                <button onclick="closeReminderModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="saveReminder(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Reminder Title</label>
+                    <input type="text" id="rem-title" required placeholder="e.g. Pay rent tomorrow" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Shortcut / Widget Note</label>
+                    <textarea id="rem-note" placeholder="Details for Lock Screen view..." class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 h-20 resize-none"></textarea>
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3.5 rounded-2xl shadow transition">Save Reminder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-notes-manager" class="fixed inset-0 ios-backdrop z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+        <div class="bg-white w-full sm:max-w-md rounded-t-[32px] sm:rounded-3xl p-6 shadow-2xl h-[520px] flex flex-col">
+            <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
+                <div class="flex items-center gap-2">
+                    <h3 class="text-lg font-bold">My Notes (<span id="notes-count-label">0</span>)</h3>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="openNoteEditorModal(null)" class="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center hover:bg-emerald-700 shadow-sm" title="Add New Note">
+                        <i class="fa-solid fa-plus text-xs"></i>
+                    </button>
+                    <button onclick="closeNotesManagerModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="notes-list-container" class="flex-1 overflow-y-auto space-y-2.5 pr-1"></div>
+        </div>
+    </div>
+
+    <div id="modal-note-editor" class="fixed inset-0 ios-backdrop z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+        <div class="bg-white w-full sm:max-w-md rounded-t-[32px] sm:rounded-3xl p-6 shadow-2xl h-[460px] flex flex-col">
+            <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
+                <h3 class="text-lg font-bold" id="note-editor-title">Edit Note</h3>
+                <button onclick="closeNoteEditorModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form onsubmit="saveNoteItem(event)" class="flex-1 flex flex-col space-y-3">
+                <input type="hidden" id="edit-note-id">
+                <div>
+                    <label class="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Note Title</label>
+                    <input type="text" id="edit-note-title" required placeholder="e.g. Savings Goals 2026" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-emerald-500">
+                </div>
+                <div class="flex-1 flex flex-col">
+                    <label class="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Content</label>
+                    <textarea id="edit-note-content" required placeholder="Write your thoughts here..." class="w-full flex-1 bg-gray-50 border border-gray-200 rounded-2xl p-3 text-sm outline-none focus:border-emerald-500 resize-none"></textarea>
+                </div>
+                <div class="pt-2 flex gap-2">
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-2xl transition shadow">Save Note</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast" class="absolute top-14 left-1/2 -translate-x-1/2 bg-gray-900/90 text-white text-xs px-4 py-2 rounded-full shadow-lg transition-all duration-300 opacity-0 pointer-events-none z-50">Notification</div>
+</div>
+
+<script>
+    let state = {
+        theme: 'mint',
+        settings: {
+            hourlyRate: 500.00,
+            dailyRate: 4000.00,
+            earningsCurrency: 'GBP',
+            bankCurrency: 'PHP',
+            exchangeRate: 74.50,
+            supabaseUrl: '',
+            supabaseKey: '',
+            useSupabase: false
+        },
+        payPeriods: [
+            {
+                id: 1,
+                name: "1st Half (Mid-Month)",
+                type: "Mid-Month",
+                incomes: [{ id: 101, title: "Primary Income", amount: 25000.00 }],
+                expenses: [
+                    { id: 201, title: "Apartment Rent", amount: 12000.00, paid: true, type: 'recurring' },
+                    { id: 202, title: "Groceries", amount: 3500.00, paid: false, type: 'manual' }
+                ]
+            }
+        ],
+        recurringPayments: [
+            { id: 1, title: "Apartment Rent", amount: 12000.00, payPeriodName: "1st Half (Mid-Month)" }
+        ],
+        reminders: [
+            { id: 1, title: "Pay electricity bill", note: "Due on Friday via GCash", active: true }
+        ],
+        notesList: [
+            { id: 1, title: "Monthly Savings Target", content: "Save at least 20% of net local currency pay periods.", timestamp: "2026-06-01 10:30" },
+            { id: 2, title: "Investment Ideas", content: "Explore digital assets and index funds in PHP.", timestamp: "2026-06-02 14:15" }
+        ]
+    };
+
+    let supabaseClient = null;
+    const themesConfig = {
+        mint: { cardBg: 'from-emerald-600 to-teal-700', textActive: 'text-emerald-600' },
+        lilac: { cardBg: 'from-purple-600 to-indigo-700', textActive: 'text-purple-600' },
+        peach: { cardBg: 'from-orange-500 to-amber-600', textActive: 'text-orange-600' },
+        skyblue: { cardBg: 'from-sky-500 to-blue-600', textActive: 'text-sky-600' },
+        rose: { cardBg: 'from-rose-500 to-pink-600', textActive: 'text-rose-600' }
+    };
+
+    function loadState() {
+        const saved = localStorage.getItem('ios_budget_state_v6');
+        if (saved) { try { state = JSON.parse(saved); } catch(e) { console.error(e); } }
+        if (state.settings.useSupabase && state.settings.supabaseUrl && state.settings.supabaseKey) {
+            initSupabaseClient();
+        }
+    }
+
+    function saveState() {
+        localStorage.setItem('ios_budget_state_v6', JSON.stringify(state));
+        updateNotesBadge();
+    }
+
+    function initSupabaseClient() {
+        try {
+            if (window.supabase && state.settings.supabaseUrl && state.settings.supabaseKey) {
+                supabaseClient = window.supabase.createClient(state.settings.supabaseUrl, state.settings.supabaseKey);
+                document.getElementById('sync-status').className = "w-2 h-2 rounded-full bg-blue-500 inline-block animate-pulse";
+            }
+        } catch (err) {
+            console.error("Supabase init error:", err);
+        }
+    }
+
+    window.onload = function() {
+        loadState();
+        applyTheme(state.theme || 'mint');
+        populateSettingsFields();
+        updateNotesBadge();
+        renderAll();
+        updateClock();
+        setInterval(updateClock, 30000);
+    };
+
+    function updateClock() {
+        const now = new Date();
+        let h = now.getHours(), m = now.getMinutes();
+        m = m < 10 ? '0' + m : m;
+        document.getElementById('current-time').innerText = `${h}:${m}`;
+    }
+
+    function setTheme(themeName) {
+        state.theme = themeName;
+        applyTheme(themeName);
+        saveState();
+        showToast(`Theme changed to ${themeName}`);
+    }
+
+    function applyTheme(themeName) {
+        document.body.className = `theme-${themeName} flex justify-center items-center min-h-screen p-0 sm:p-4`;
+        const config = themesConfig[themeName] || themesConfig.mint;
+        const summaryCard = document.getElementById('summary-card');
+        summaryCard.className = `p-5 rounded-2xl shadow-lg relative overflow-hidden text-white bg-gradient-to-br ${config.cardBg} transition-colors duration-300`;
+    }
+
+    function populateSettingsFields() {
+        document.getElementById('setting-hourly').value = state.settings.hourlyRate;
+        document.getElementById('setting-daily').value = state.settings.dailyRate;
+        document.getElementById('setting-earn-curr').value = state.settings.earningsCurrency;
+        document.getElementById('setting-bank-curr').value = state.settings.bankCurrency;
+        document.getElementById('setting-ex-rate').value = state.settings.exchangeRate;
+        document.getElementById('setting-supabase-url').value = state.settings.supabaseUrl || '';
+        document.getElementById('setting-supabase-key').value = state.settings.supabaseKey || '';
+        document.getElementById('setting-use-supabase').checked = state.settings.useSupabase || false;
+        updateCurrencyLabels();
+    }
+
+    function updateCurrencyLabels() {
+        const bankCurr = state.settings.bankCurrency || 'PHP';
+        document.querySelectorAll('.bank-curr-label').forEach(el => el.innerText = bankCurr);
+    }
+
+    function saveSettings() {
+        state.settings.hourlyRate = parseFloat(document.getElementById('setting-hourly').value) || 500;
+        state.settings.dailyRate = parseFloat(document.getElementById('setting-daily').value) || 4000;
+        state.settings.earningsCurrency = document.getElementById('setting-earn-curr').value.toUpperCase() || 'GBP';
+        state.settings.bankCurrency = document.getElementById('setting-bank-curr').value.toUpperCase() || 'PHP';
+        state.settings.exchangeRate = parseFloat(document.getElementById('setting-ex-rate').value) || 74.50;
+        state.settings.supabaseUrl = document.getElementById('setting-supabase-url').value.trim();
+        state.settings.supabaseKey = document.getElementById('setting-supabase-key').value.trim();
+        updateCurrencyLabels();
+        saveState();
+        renderAll();
+        showToast("Settings saved successfully");
+    }
+
+    function toggleSupabaseMode() {
+        state.settings.useSupabase = document.getElementById('setting-use-supabase').checked;
+        if (state.settings.useSupabase) {
+            initSupabaseClient();
+            showToast("Supabase mode enabled");
+        } else {
+            supabaseClient = null;
+            document.getElementById('sync-status').className = "w-2 h-2 rounded-full bg-emerald-500 inline-block";
+            showToast("Switched to Local Storage mode");
+        }
+        saveState();
+    }
+
+    function switchTab(tabName) {
+        ['pay-periods', 'recurring', 'calculator', 'reminders', 'settings'].forEach(v => {
+            document.getElementById(`view-${v}`).classList.add('hidden');
+        });
+        document.getElementById(`view-${tabName}`).classList.remove('hidden');
+
+        const titles = {
+            'pay-periods': ['Pay Periods', 'Local Currency Budget Overview'],
+            'recurring': ['Recurring Bills', 'Scheduled Subscriptions'],
+            'calculator': ['Time Calculator', 'Convert local currency to work hours'],
+            'reminders': ['Reminders', 'Lock Screen & Shortcuts sync'],
+            'settings': ['Settings', 'Themes, Rates & Supabase']
+        };
+
+        document.getElementById('app-title').innerText = titles[tabName][0];
+        document.getElementById('app-subtitle').innerText = titles[tabName][1];
+
+        document.querySelectorAll('nav button').forEach(btn => {
+            btn.className = "flex flex-col items-center flex-1 text-gray-400 hover:text-gray-600 transition";
+        });
+        const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+        if (activeBtn) {
+            const activeColor = themesConfig[state.theme]?.textActive || 'text-emerald-600';
+            activeBtn.className = `flex flex-col items-center flex-1 ${activeColor} transition`;
+        }
+    }
+
+    function renderAll() {
+        syncRecurringIntoPayPeriods();
+        renderPayPeriods();
+        renderRecurringPayments();
+        renderReminders();
+        saveState();
+    }
+
+    function syncRecurringIntoPayPeriods() {
+        state.payPeriods.forEach(pp => {
+            const assigned = state.recurringPayments.filter(r => r.payPeriodName === pp.name);
+            assigned.forEach(rec => {
+                const exists = pp.expenses.some(e => e.title === rec.title && e.type === 'recurring');
+                if (!exists) {
+                    pp.expenses.push({ id: Date.now() + Math.random(), title: rec.title, amount: rec.amount, paid: false, type: 'recurring' });
+                }
+            });
+        });
+    }
+
+    function renderPayPeriods() {
+        const container = document.getElementById('pay-periods-list');
+        const emptyState = document.getElementById('pay-periods-empty');
+        const badge = document.getElementById('period-count-badge');
+        const addBtn = document.getElementById('add-period-btn');
+        const bankCurr = state.settings.bankCurrency || 'PHP';
+
+        badge.innerText = `${state.payPeriods.length} / 4`;
+        if (state.payPeriods.length >= 4) { addBtn.classList.add('opacity-40', 'pointer-events-none'); }
+        else { addBtn.classList.remove('opacity-40', 'pointer-events-none'); }
+
+        if (state.payPeriods.length === 0) {
+            container.innerHTML = '';
+            emptyState.classList.remove('hidden');
+            document.getElementById('summary-money-left').innerText = `₱0.00`;
+            document.getElementById('summary-total-expenses').innerText = `₱0.00`;
+            return;
+        }
+
+        emptyState.classList.add('hidden');
+        let totalIncomeAll = 0, totalExpenseAll = 0, html = '';
+
+        state.payPeriods.forEach(pp => {
+            let ppIncome = pp.incomes.reduce((s, i) => s + Number(i.amount), 0);
+            let ppExpense = pp.expenses.reduce((s, e) => s + Number(e.amount), 0);
+            totalIncomeAll += ppIncome;
+            totalExpenseAll += ppExpense;
+
+            let incomesHtml = pp.incomes.map(inc => `
+                <div class="flex justify-between items-center py-1.5 border-b border-gray-100 text-xs">
+                    <span class="font-medium text-gray-700">${escapeHtml(inc.title)}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-emerald-600">+${bankCurr} ${Number(inc.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                        <button onclick="deleteIncome(${pp.id}, ${inc.id})" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+            `).join('');
+
+            let expensesHtml = pp.expenses.map(exp => `
+                <div class="flex justify-between items-center py-2 border-b border-gray-100 text-xs">
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleExpensePaid(${pp.id}, ${exp.id})" class="w-5 h-5 rounded-full flex items-center justify-center ${exp.paid ? 'bg-emerald-500 text-white' : 'border border-gray-300 text-transparent'}">
+                            <i class="fa-solid fa-check text-[10px]"></i>
+                        </button>
+                        <div>
+                            <span class="font-medium ${exp.paid ? 'line-through text-gray-400' : 'text-gray-800'}">${escapeHtml(exp.title)}</span>
+                            <span class="block text-[9px] text-gray-400 uppercase">${exp.type}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold ${exp.paid ? 'text-gray-400' : 'text-rose-600'}">-${bankCurr} ${Number(exp.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                        <button onclick="openEditExpenseModal(${pp.id}, ${exp.id})" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-[10px]"></i></button>
+                        <button onclick="deleteExpense(${pp.id}, ${exp.id})" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+                    </div>
+                </div>
+            `).join('');
+
+            html += `
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+                    <div class="flex justify-between items-center pb-2 border-b border-gray-100">
+                        <div>
+                            <h4 class="font-bold text-gray-900 text-sm">${escapeHtml(pp.name)}</h4>
+                            <span class="text-[10px] text-gray-500 font-medium">${pp.type}</span>
+                        </div>
+                        <button onclick="deletePayPeriod(${pp.id})" class="w-7 h-7 rounded-full text-gray-300 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[11px] font-semibold text-emerald-600 uppercase">Incomes (${pp.incomes.length}/10)</span>
+                            ${pp.incomes.length < 10 ? `<button onclick="openIncomeModal(${pp.id})" class="text-[11px] text-emerald-600 font-semibold hover:underline">+ Add Income</button>` : ''}
+                        </div>
+                        ${pp.incomes.length === 0 ? '<p class="text-[11px] text-gray-400 italic">No income added yet.</p>' : incomesHtml}
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[11px] font-semibold text-rose-600 uppercase">Expenses & Loans</span>
+                            <button onclick="openExpenseModal(${pp.id})" class="text-[11px] text-rose-600 font-semibold hover:underline">+ Add Expense</button>
+                        </div>
+                        ${pp.expenses.length === 0 ? '<p class="text-[11px] text-gray-400 italic">No expenses recorded.</p>' : expensesHtml}
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+        let moneyLeft = totalIncomeAll - totalExpenseAll;
+        document.getElementById('summary-money-left').innerText = `${bankCurr} ${moneyLeft.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+        document.getElementById('summary-total-expenses').innerText = `${bankCurr} ${totalExpenseAll.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+    }
+
+    function renderRecurringPayments() {
+        const list = document.getElementById('recurring-list');
+        const bankCurr = state.settings.bankCurrency || 'PHP';
+        if (state.recurringPayments.length === 0) {
+            list.innerHTML = `<div class="text-center py-8 bg-gray-50 rounded-2xl text-gray-400 text-xs">No recurring bills added.</div>`;
+            return;
+        }
+        let html = '';
+        state.recurringPayments.forEach(rec => {
+            html += `
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div>
+                        <h4 class="font-bold text-gray-800 text-sm">${escapeHtml(rec.title)}</h4>
+                        <span class="text-[10px] text-gray-500"><i class="fa-solid fa-link mr-1"></i>${escapeHtml(rec.payPeriodName)}</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-bold text-rose-600 text-sm">-${bankCurr} ${Number(rec.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                        <button onclick="deleteRecurring(${rec.id})" class="w-8 h-8 rounded-full text-gray-300 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        list.innerHTML = html;
+    }
+
+    function renderReminders() {
+        const list = document.getElementById('reminders-list');
+        if (state.reminders.length === 0) {
+            list.innerHTML = `<div class="text-center py-8 bg-gray-50 rounded-2xl text-gray-400 text-xs">No reminders set.</div>`;
+            return;
+        }
+        let html = '';
+        state.reminders.forEach(rem => {
+            html += `
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <h4 class="font-bold text-gray-800 text-sm">${escapeHtml(rem.title)}</h4>
+                        <button onclick="deleteReminder(${rem.id})" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                    </div>
+                    ${rem.note ? `<p class="text-xs text-gray-500 bg-gray-50 p-2.5 rounded-xl font-mono">${escapeHtml(rem.note)}</p>` : ''}
+                </div>
+            `;
+        });
+        list.innerHTML = html;
+    }
+
+    function calculateTimeExpense() {
+        const amtLocal = parseFloat(document.getElementById('calc-amount-input').value);
+        if (isNaN(amtLocal) || amtLocal <= 0) {
+            showToast("Please enter a valid amount in " + state.settings.bankCurrency);
+            return;
+        }
+        const exchangeRate = state.settings.exchangeRate > 0 ? state.settings.exchangeRate : 74.50;
+        const amtEarned = amtLocal / exchangeRate;
+        const hours = state.settings.hourlyRate > 0 ? (amtEarned / state.settings.hourlyRate) : 0;
+        const days = state.settings.dailyRate > 0 ? (amtEarned / state.settings.dailyRate) : 0;
+
+        document.getElementById('res-hours').innerText = hours.toFixed(1);
+        document.getElementById('res-days').innerText = days.toFixed(1);
+        document.getElementById('res-converted-text').innerText = `Equivalent: ${state.settings.earningsCurrency} ${amtEarned.toFixed(2)} (at ${exchangeRate} ${state.settings.bankCurrency} per 1 ${state.settings.earningsCurrency})`;
+        document.getElementById('calc-result-card').classList.remove('hidden');
+    }
+
+    function openPayPeriodModal() {
+        if (state.payPeriods.length >= 4) { showToast("Maximum limit of 4 pay periods reached!"); return; }
+        document.getElementById('pp-name').value = '';
+        document.getElementById('modal-pay-period').classList.remove('hidden');
+    }
+    function closePayPeriodModal() { document.getElementById('modal-pay-period').classList.add('hidden'); }
+    function savePayPeriod(e) {
+        e.preventDefault();
+        const name = document.getElementById('pp-name').value.trim();
+        const type = document.getElementById('pp-type').value;
+        if (!name) return;
+        state.payPeriods.push({ id: Date.now(), name, type, incomes: [], expenses: [] });
+        closePayPeriodModal();
+        renderAll();
+        showToast("Pay period added");
+    }
+    function deletePayPeriod(id) {
+        state.payPeriods = state.payPeriods.filter(p => p.id !== id);
+        renderAll();
+        showToast("Pay period deleted");
+    }
+
+    function openIncomeModal(ppId) {
+        document.getElementById('income-pp-id').value = ppId;
+        document.getElementById('inc-title').value = '';
+        document.getElementById('inc-amount').value = '';
+        document.getElementById('modal-income').classList.remove('hidden');
+    }
+    function closeIncomeModal() { document.getElementById('modal-income').classList.add('hidden'); }
+    function saveIncomeSource(e) {
+        e.preventDefault();
+        const ppId = parseInt(document.getElementById('income-pp-id').value);
+        const title = document.getElementById('inc-title').value.trim();
+        const amount = parseFloat(document.getElementById('inc-amount').value);
+        const pp = state.payPeriods.find(p => p.id === ppId);
+        if (pp && pp.incomes.length < 10) {
+            pp.incomes.push({ id: Date.now(), title, amount });
+            closeIncomeModal();
+            renderAll();
+            showToast("Income source added");
+        } else { showToast("Max 10 income sources allowed per period"); }
+    }
+    function deleteIncome(ppId, incId) {
+        const pp = state.payPeriods.find(p => p.id === ppId);
+        if (pp) { pp.incomes = pp.incomes.filter(i => i.id !== incId); renderAll(); showToast("Income removed"); }
+    }
+
+    function openExpenseModal(ppId) {
+        document.getElementById('exp-pp-id').value = ppId;
+        document.getElementById('exp-edit-id').value = '';
+        document.getElementById('exp-title').value = '';
+        document.getElementById('exp-amount').value = '';
+        document.getElementById('expense-modal-title').innerText = 'Add Expense or Loan';
+        document.getElementById('modal-expense').classList.remove('hidden');
+    }
+    function openEditExpenseModal(ppId, expId) {
+        const pp = state.payPeriods.find(p => p.id === ppId);
+        const exp = pp.expenses.find(e => e.id === expId);
+        if (exp) {
+            document.getElementById('exp-pp-id').value = ppId;
+            document.getElementById('exp-edit-id').value = expId;
+            document.getElementById('exp-title').value = exp.title;
+            document.getElementById('exp-amount').value = exp.amount;
+            document.getElementById('exp-type').value = exp.type;
+            document.getElementById('expense-modal-title').innerText = 'Edit Expense / Loan';
+            document.getElementById('modal-expense').classList.remove('hidden');
+        }
+    }
+    function closeExpenseModal() { document.getElementById('modal-expense').classList.add('hidden'); }
+    function saveExpenseItem(e) {
+        e.preventDefault();
+        const ppId = parseInt(document.getElementById('exp-pp-id').value);
+        const editId = document.getElementById('exp-edit-id').value;
+        const title = document.getElementById('exp-title').value.trim();
+        const amount = parseFloat(document.getElementById('exp-amount').value);
+        const type = document.getElementById('exp-type').value;
+        const pp = state.payPeriods.find(p => p.id === ppId);
+        if (pp) {
+            if (editId) {
+                const exp = pp.expenses.find(ex => ex.id == editId);
+                if (exp) { exp.title = title; exp.amount = amount; exp.type = type; }
+            } else {
+                pp.expenses.push({ id: Date.now(), title, amount, paid: false, type });
+            }
+            closeExpenseModal();
+            renderAll();
+            showToast("Expense saved");
+        }
+    }
+    function toggleExpensePaid(ppId, expId) {
+        const pp = state.payPeriods.find(p => p.id === ppId);
+        if (pp) {
+            const exp = pp.expenses.find(e => e.id === expId);
+            if (exp) { exp.paid = !exp.paid; renderAll(); }
+        }
+    }
+    function deleteExpense(ppId, expId) {
+        const pp = state.payPeriods.find(p => p.id === ppId);
+        if (pp) { pp.expenses = pp.expenses.filter(e => e.id !== expId); renderAll(); showToast("Expense deleted"); }
+    }
+
+    function openRecurringModal() {
+        if (state.payPeriods.length === 0) { showToast("Please add a Pay Period first!"); return; }
+        const select = document.getElementById('rec-period-name');
+        select.innerHTML = '';
+        state.payPeriods.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.name; opt.innerText = p.name;
+            select.appendChild(opt);
+        });
+        document.getElementById('rec-title').value = '';
+        document.getElementById('rec-amount').value = '';
+        document.getElementById('modal-recurring').classList.remove('hidden');
+    }
+    function closeRecurringModal() { document.getElementById('modal-recurring').classList.add('hidden'); }
+    function saveRecurringPayment(e) {
+        e.preventDefault();
+        const title = document.getElementById('rec-title').value.trim();
+        const amount = parseFloat(document.getElementById('rec-amount').value);
+        const payPeriodName = document.getElementById('rec-period-name').value;
+        state.recurringPayments.push({ id: Date.now(), title, amount, payPeriodName });
+        closeRecurringModal();
+        renderAll();
+        showToast("Recurring bill added & synced");
+    }
+    function deleteRecurring(id) {
+        state.recurringPayments = state.recurringPayments.filter(r => r.id !== id);
+        renderAll();
+        showToast("Recurring bill deleted");
+    }
+
+    function openReminderModal() {
+        document.getElementById('rem-title').value = '';
+        document.getElementById('rem-note').value = '';
+        document.getElementById('modal-reminder').classList.remove('hidden');
+    }
+    function closeReminderModal() { document.getElementById('modal-reminder').classList.add('hidden'); }
+    function saveReminder(e) {
+        e.preventDefault();
+        const title = document.getElementById('rem-title').value.trim();
+        const note = document.getElementById('rem-note').value.trim();
+        state.reminders.push({ id: Date.now(), title, note, active: true });
+        closeReminderModal();
+        renderAll();
+        showToast("Reminder added");
+    }
+    function deleteReminder(id) {
+        state.reminders = state.reminders.filter(r => r.id !== id);
+        renderAll();
+        showToast("Reminder deleted");
+    }
+
+    function openNotesManagerModal() {
+        renderNotesList();
+        document.getElementById('modal-notes-manager').classList.remove('hidden');
+    }
+    function closeNotesManagerModal() { document.getElementById('modal-notes-manager').classList.add('hidden'); }
+    function renderNotesList() {
+        const container = document.getElementById('notes-list-container');
+        const countLabel = document.getElementById('notes-count-label');
+        const notes = state.notesList || [];
+        countLabel.innerText = notes.length;
+        if (notes.length === 0) {
+            container.innerHTML = `<div class="text-center py-12 text-gray-400 text-xs">No notes created yet.<br>Tap '+' to create one.</div>`;
+            return;
+        }
+        let html = '';
+        notes.forEach(note => {
+            html += `
+                <div class="bg-gray-50 border border-gray-100 rounded-2xl p-3.5 space-y-1.5 hover:shadow-sm transition">
+                    <div class="flex justify-between items-center">
+                        <h4 class="font-bold text-gray-800 text-xs">${escapeHtml(note.title)}</h4>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="openNoteEditorModal(${note.id})" class="w-6 h-6 rounded-full bg-white text-gray-500 hover:text-blue-600 flex items-center justify-center shadow-sm"><i class="fa-solid fa-pen text-[10px]"></i></button>
+                            <button onclick="deleteNoteItem(${note.id})" class="w-6 h-6 rounded-full bg-white text-gray-500 hover:text-red-600 flex items-center justify-center shadow-sm"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-600 line-clamp-2">${escapeHtml(note.content)}</p>
+                    <span class="block text-[9px] text-gray-400 font-mono">${note.timestamp || ''}</span>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+    function updateNotesBadge() {
+        document.getElementById('notes-badge-count').innerText = (state.notesList || []).length;
+    }
+    function openNoteEditorModal(noteId) {
+        document.getElementById('edit-note-id').value = noteId !== null ? noteId : '';
+        if (noteId !== null) {
+            const note = (state.notesList || []).find(n => n.id === noteId);
+            if (note) {
+                document.getElementById('note-editor-title').innerText = 'Edit Note';
+                document.getElementById('edit-note-title').value = note.title;
+                document.getElementById('edit-note-content').value = note.content;
+            }
+        } else {
+            document.getElementById('note-editor-title').innerText = 'New Note';
+            document.getElementById('edit-note-title').value = '';
+            document.getElementById('edit-note-content').value = '';
+        }
+        document.getElementById('modal-note-editor').classList.remove('hidden');
+    }
+    function closeNoteEditorModal() { document.getElementById('modal-note-editor').classList.add('hidden'); }
+    function saveNoteItem(e) {
+        e.preventDefault();
+        const editId = document.getElementById('edit-note-id').value;
+        const title = document.getElementById('edit-note-title').value.trim();
+        const content = document.getElementById('edit-note-content').value.trim();
+        const timestamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
+        if (!state.notesList) state.notesList = [];
+        if (editId !== '') {
+            const note = state.notesList.find(n => n.id == editId);
+            if (note) { note.title = title; note.content = content; note.timestamp = timestamp; }
+        } else {
+            state.notesList.unshift({ id: Date.now(), title, content, timestamp });
+        }
+        saveState();
+        closeNoteEditorModal();
+        renderNotesList();
+        showToast("Note saved successfully");
+    }
+    function deleteNoteItem(noteId) {
+        state.notesList = (state.notesList || []).filter(n => n.id !== noteId);
+        saveState();
+        renderNotesList();
+        showToast("Note deleted");
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.classList.remove('opacity-0');
+        t.classList.add('opacity-100');
+        setTimeout(() => { t.classList.remove('opacity-100'); t.classList.add('opacity-0'); }, 2500);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+</script>
