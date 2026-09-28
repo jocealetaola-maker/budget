@@ -180,9 +180,7 @@
             </div>
 
             <!-- Pay Periods List -->
-            <div id="payPeriodsContainer" class="space-y-4">
-                <!-- Dynamically populated based on frequency setting -->
-            </div>
+            <div id="payPeriodsContainer" class="space-y-4"></div>
         </section>
 
         <!-- TAB 2: Summary & Highest Expenses Analysis -->
@@ -192,13 +190,9 @@
                     <h2 class="font-bold text-base">Expense Insights & Categories</h2>
                     <p class="text-xs text-theme-muted" id="summaryInsightsMonthLabel">Analysis for current month</p>
                 </div>
-
-                <!-- Top Category Breakdown -->
                 <div class="space-y-2">
                     <h3 class="text-xs font-semibold uppercase tracking-wider text-theme-muted">Expenses by Category</h3>
-                    <div id="categoryBreakdownContainer" class="space-y-2">
-                        <!-- Dynamically populated -->
-                    </div>
+                    <div id="categoryBreakdownContainer" class="space-y-2"></div>
                 </div>
             </div>
         </section>
@@ -210,7 +204,7 @@
                 <button onclick="switchRecurringSubTab('loans')" id="subnav-loans" class="flex-1 py-1.5 rounded-lg text-xs font-semibold text-theme-muted hover:text-theme-primary transition">Loans & Ledger</button>
             </div>
 
-            <!-- SubTab 1: Period Expenses & Recurring Columns -->
+            <!-- SubTab 1: Period Expenses -->
             <div id="subtab-bills" class="space-y-3">
                 <div class="flex justify-between items-center">
                     <div>
@@ -218,9 +212,7 @@
                         <p class="text-xs text-theme-muted">Add entries directly to specific periods</p>
                     </div>
                 </div>
-                <div id="recurringColumnsContainer" class="space-y-4">
-                    <!-- Dynamically rendered columns based on frequency -->
-                </div>
+                <div id="recurringColumnsContainer" class="space-y-4"></div>
             </div>
 
             <!-- SubTab 2: Loans & Waterfall Ledger -->
@@ -267,16 +259,7 @@
             </div>
         </section>
 
-        <!-- TAB 5: Reminders -->
-        <section id="tab-reminders" class="space-y-4 tab-content hidden">
-            <div class="flex justify-between items-center">
-                <h2 class="font-bold text-base">Lock Screen Reminders</h2>
-                <button onclick="openAddReminderModal()" class="text-xs bg-theme-primary text-white px-3 py-1.5 rounded-lg font-medium">+ Add Reminder</button>
-            </div>
-            <div id="remindersContainer" class="space-y-3"></div>
-        </section>
-
-        <!-- TAB 6: Settings -->
+        <!-- TAB 5: Settings -->
         <section id="tab-settings" class="space-y-4 tab-content hidden">
             <div class="bg-theme-card border border-theme-border rounded-2xl p-4 shadow-sm space-y-4">
                 <h2 class="font-bold text-base">App Settings</h2>
@@ -289,12 +272,9 @@
                     </select>
                 </div>
 
-                <!-- Custom Period Name Labels Configurator -->
                 <div class="space-y-2">
                     <label class="block text-xs font-semibold text-theme-muted">Customize Period Names</label>
-                    <div id="periodLabelsConfigContainer" class="space-y-2">
-                        <!-- Dynamically populated input fields -->
-                    </div>
+                    <div id="periodLabelsConfigContainer" class="space-y-2"></div>
                 </div>
 
                 <hr class="border-theme-border">
@@ -339,7 +319,7 @@
 
     </main>
 
-    <!-- Bottom Navigation Bar -->
+    <!-- Bottom Navigation Bar (5 Items) -->
     <nav class="fixed bottom-0 left-0 right-0 bg-theme-card/95 backdrop-blur border-t border-theme-border py-2 px-3 z-30 max-w-md mx-auto flex justify-around">
         <button onclick="switchTab('budget')" id="nav-budget" class="flex flex-col items-center space-y-1 text-theme-primary">
             <i class="fa-solid fa-calendar-days text-base"></i>
@@ -356,10 +336,6 @@
         <button onclick="switchTab('timecost')" id="nav-timecost" class="flex flex-col items-center space-y-1 text-theme-muted hover:text-theme-primary">
             <i class="fa-solid fa-clock-rotate-left text-base"></i>
             <span class="text-[10px] font-medium">Time Cost</span>
-        </button>
-        <button onclick="switchTab('reminders')" id="nav-reminders" class="flex flex-col items-center space-y-1 text-theme-muted hover:text-theme-primary">
-            <i class="fa-solid fa-bell text-base"></i>
-            <span class="text-[10px] font-medium">Reminders</span>
         </button>
         <button onclick="switchTab('settings')" id="nav-settings" class="flex flex-col items-center space-y-1 text-theme-muted hover:text-theme-primary">
             <i class="fa-solid fa-gear text-base"></i>
@@ -455,21 +431,66 @@
         </div>
     </div>
 
-    <!-- MODAL: Add Reminder -->
-    <div id="addReminderModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <!-- MODAL: Waterfall Ledger for Selected Loan -->
+    <div id="loanLedgerModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-theme-card w-full max-w-lg rounded-t-3xl sm:rounded-2xl max-h-[90vh] flex flex-col shadow-xl border border-theme-border overflow-hidden">
+            <div class="p-4 border-b border-theme-border flex justify-between items-center bg-theme-bg">
+                <div>
+                    <h3 id="ledgerModalTitle" class="font-bold text-base">Loan Waterfall Ledger</h3>
+                    <p class="text-xs text-theme-muted">Track amounts due and payments chronologically</p>
+                </div>
+                <button onclick="closeLoanLedgerModal()" class="w-8 h-8 rounded-full bg-theme-card border border-theme-border flex items-center justify-center text-xs"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-4 overflow-y-auto space-y-4 flex-1" id="ledgerContentContainer"></div>
+            <div class="p-3 border-t border-theme-border bg-theme-bg flex space-x-2">
+                <button onclick="openLedgerAddDueModal()" class="flex-1 bg-theme-accent text-theme-primary py-2.5 rounded-xl text-xs font-medium">+ Add Amount Due</button>
+                <button onclick="openLedgerAddPaymentModal()" class="flex-1 bg-theme-primary text-white py-2.5 rounded-xl text-xs font-medium">+ Add Payment</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Add Amount Due to Ledger -->
+    <div id="addLedgerDueModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="bg-theme-card w-full max-w-sm rounded-2xl p-4 shadow-xl border border-theme-border space-y-3">
-            <h3 class="font-bold text-base">Add Reminder</h3>
+            <h3 class="font-bold text-base">Add Amount Due</h3>
             <div>
-                <label class="block text-xs text-theme-muted mb-1">Title</label>
-                <input type="text" id="reminderTitleInput" placeholder="e.g. Pay Internet Bill" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+                <label class="block text-xs text-theme-muted mb-1">Description / Title</label>
+                <input type="text" id="ledgerDueTitleInput" placeholder="e.g. Monthly Bill, Penalty" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs text-theme-muted mb-1">Amount (₱ PHP)</label>
+                <input type="number" id="ledgerDueAmountInput" placeholder="0.00" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
             </div>
             <div>
                 <label class="block text-xs text-theme-muted mb-1">Due Date</label>
-                <input type="date" id="reminderDateInput" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+                <input type="date" id="ledgerDueDateInput" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
             </div>
             <div class="flex space-x-2 pt-2">
-                <button onclick="closeAddReminderModal()" class="flex-1 bg-theme-bg py-2 rounded-xl text-xs font-medium border border-theme-border">Cancel</button>
-                <button onclick="saveNewReminder()" class="flex-1 bg-theme-primary text-white py-2 rounded-xl text-xs font-medium">Save</button>
+                <button onclick="closeLedgerAddDueModal()" class="flex-1 bg-theme-bg py-2 rounded-xl text-xs font-medium border border-theme-border">Cancel</button>
+                <button onclick="saveLedgerDue()" class="flex-1 bg-theme-primary text-white py-2 rounded-xl text-xs font-medium">Add Due</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Add Payment to Ledger -->
+    <div id="addLedgerPaymentModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-theme-card w-full max-w-sm rounded-2xl p-4 shadow-xl border border-theme-border space-y-3">
+            <h3 class="font-bold text-base">Add Loan Payment</h3>
+            <div>
+                <label class="block text-xs text-theme-muted mb-1">Payment Amount (₱ PHP)</label>
+                <input type="number" id="ledgerPaymentAmountInput" placeholder="0.00" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs text-theme-muted mb-1">Payment Date</label>
+                <input type="date" id="ledgerPaymentDateInput" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs text-theme-muted mb-1">Assign to Pay Period</label>
+                <select id="ledgerPaymentPeriodSelect" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm"></select>
+            </div>
+            <div class="flex space-x-2 pt-2">
+                <button onclick="closeLedgerAddPaymentModal()" class="flex-1 bg-theme-bg py-2 rounded-xl text-xs font-medium border border-theme-border">Cancel</button>
+                <button onclick="saveLedgerPayment()" class="flex-1 bg-theme-primary text-white py-2 rounded-xl text-xs font-medium">Add Payment</button>
             </div>
         </div>
     </div>
@@ -484,19 +505,19 @@
         let currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
         let isSignupMode = false;
         let currentUser = null;
+        let currentActiveLoanId = null;
 
         let appData = {
             theme: 'lilac',
             monthsData: {}, // Keyed by YYYY-MM: { expenses: [], incomes: {} }
             loans: [],
             notes: [],
-            reminders: [],
             settings: { 
                 earnedCurrency: 'GBP', 
                 hourlyRate: 15, 
                 dailyRate: 120, 
                 exchangeRate: 74.50,
-                payFrequency: 'Bi Monthly', // 'Monthly', 'Bi Monthly', 'Weekly'
+                payFrequency: 'Bi Monthly',
                 customPeriodNames: {
                     'Monthly': ['Full Month'],
                     'Bi Monthly': ['Mid-Month', 'End of Month'],
@@ -619,7 +640,7 @@
         }
 
         function switchTab(tabId) {
-            ['budget', 'summary', 'recurring', 'timecost', 'reminders', 'settings'].forEach(t => {
+            ['budget', 'summary', 'recurring', 'timecost', 'settings'].forEach(t => {
                 document.getElementById(`tab-${t}`).classList.add('hidden');
                 document.getElementById(`nav-${t}`).className = 'flex flex-col items-center space-y-1 text-theme-muted hover:text-theme-primary';
             });
@@ -637,13 +658,13 @@
             document.getElementById(`subtab-${subTabId}`).classList.remove('hidden');
             document.getElementById(`subnav-${subTabId}`).className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold bg-theme-primary text-white transition';
             if (subTabId === 'bills') renderRecurringColumns();
+            if (subTabId === 'loans') renderLoans();
         }
 
         function renderAll() {
             renderPayPeriods();
             renderRecurringColumns();
             renderLoans();
-            renderReminders();
             renderNotesList();
             updateMonthSummary();
         }
@@ -652,7 +673,6 @@
             return '₱' + Number(amount || 0).toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         }
 
-        // Get active periods based on Frequency & Custom Labels
         function getActivePeriods() {
             let freq = appData.settings.payFrequency || 'Bi Monthly';
             let names = appData.settings.customPeriodNames[freq] || [];
@@ -670,7 +690,7 @@
 
         function getActiveMonthData() {
             if (!appData.monthsData[currentMonth]) {
-                appData.monthsData[currentMonth] = { expenses: [], incomes: {} }; // incomes keyed by periodId
+                appData.monthsData[currentMonth] = { expenses: [], incomes: {} };
             }
             return appData.monthsData[currentMonth];
         }
@@ -703,7 +723,6 @@
             document.getElementById('payPeriodModeLabel').innerText = appData.settings.payFrequency || 'Bi Monthly';
         }
 
-        // Render Budget Pay Periods Tab
         function renderPayPeriods() {
             const container = document.getElementById('payPeriodsContainer');
             container.innerHTML = '';
@@ -715,6 +734,10 @@
                 let pIncomes = mData.incomes[period.id] || [];
                 let periodExpenses = mData.expenses.filter(e => e.periodId === period.id);
 
+                let periodIncomeTotal = pIncomes.reduce((sum, inc) => sum + Number(inc.amount || 0), 0);
+                let periodExpenseTotal = periodExpenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
+                let periodMoneyLeft = periodIncomeTotal - periodExpenseTotal;
+
                 let card = document.createElement('div');
                 card.className = 'bg-theme-card border border-theme-border rounded-2xl p-4 shadow-sm space-y-3';
                 
@@ -723,6 +746,17 @@
                         <div>
                             <h4 class="font-bold text-sm">${period.name}</h4>
                             <span class="text-[10px] bg-theme-accent text-theme-primary px-2 py-0.5 rounded-md font-semibold">${period.type}</span>
+                        </div>
+                    </div>
+                    <!-- Mini Period Summary -->
+                    <div class="grid grid-cols-2 gap-2 bg-theme-bg p-2.5 rounded-xl border border-theme-border text-xs">
+                        <div>
+                            <span class="text-[10px] text-theme-muted block">Money Left</span>
+                            <span class="font-bold text-emerald-600">${formatPHP(periodMoneyLeft)}</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-theme-muted block">Total Expenses</span>
+                            <span class="font-bold text-rose-600">${formatPHP(periodExpenseTotal)}</span>
                         </div>
                     </div>
                     <div>
@@ -783,7 +817,6 @@
             });
         }
 
-        // Render Recurring Columns Tab (Up to 4 columns matching frequency)
         function renderRecurringColumns() {
             const container = document.getElementById('recurringColumnsContainer');
             container.innerHTML = '';
@@ -829,7 +862,6 @@
             });
         }
 
-        // Summary Tab: Category Breakdown
         function renderSummaryTab() {
             let mData = getActiveMonthData();
             document.getElementById('summaryInsightsMonthLabel').innerText = `Analysis for ${currentMonth}`;
@@ -869,16 +901,13 @@
             });
         }
 
-        // Income Modals
         function openAddIncomeModalPrompt(periodId) {
             document.getElementById('targetPeriodId').value = periodId;
             document.getElementById('incomeTitle').value = '';
             document.getElementById('incomeAmount').value = '';
             document.getElementById('addIncomeModal').classList.remove('hidden');
         }
-        function closeAddIncomeModal() {
-            document.getElementById('addIncomeModal').classList.add('hidden');
-        }
+        function closeAddIncomeModal() { document.getElementById('addIncomeModal').classList.add('hidden'); }
         function saveNewIncome() {
             let periodId = document.getElementById('targetPeriodId').value;
             let title = document.getElementById('incomeTitle').value;
@@ -898,16 +927,13 @@
             }
         }
 
-        // Expense Modals
         function openAddExpenseModalPrompt(periodId) {
             document.getElementById('targetExpensePeriodId').value = periodId;
             document.getElementById('expenseTitle').value = '';
             document.getElementById('expenseAmount').value = '';
             document.getElementById('addExpenseModal').classList.remove('hidden');
         }
-        function closeAddExpenseModal() {
-            document.getElementById('addExpenseModal').classList.add('hidden');
-        }
+        function closeAddExpenseModal() { document.getElementById('addExpenseModal').classList.add('hidden'); }
         function saveNewExpense() {
             let title = document.getElementById('expenseTitle').value;
             let category = document.getElementById('expenseCategory').value;
@@ -934,12 +960,12 @@
             }
         }
 
-        // Loans Tab & Modals (Tied to Pay Period)
+        // Loans Tab & Waterfall Ledger Planner
         function renderLoans() {
             const container = document.getElementById('loansListContainer');
             container.innerHTML = '';
             if (!appData.loans || appData.loans.length === 0) {
-                container.innerHTML = `<div class="bg-theme-card border border-theme-border rounded-2xl p-6 text-center text-xs text-theme-muted">No loans added yet.</div>`;
+                container.innerHTML = `<div class="bg-theme-card border border-theme-border rounded-2xl p-6 text-center text-xs text-theme-muted">No loans added yet. Click "+ Add Loan" to begin.</div>`;
                 return;
             }
 
@@ -950,16 +976,22 @@
                 let periodName = periodObj ? periodObj.name : 'Unassigned';
 
                 let div = document.createElement('div');
-                div.className = 'bg-theme-card border border-theme-border rounded-xl p-3.5 space-y-2 shadow-sm';
+                div.className = 'bg-theme-card border border-theme-border rounded-xl p-3.5 space-y-2 shadow-sm cursor-pointer hover:border-theme-primary transition';
+                div.onclick = () => openLoanLedgerModal(loan.id);
+
                 div.innerHTML = `
                     <div class="flex justify-between items-center">
-                        <h4 class="font-bold text-sm">${loan.lender}</h4>
-                        <button onclick="deleteLoan('${loan.id}')" class="text-rose-400 text-xs"><i class="fa-solid fa-trash"></i></button>
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-file-invoice-dollar text-theme-primary"></i>
+                            <h4 class="font-bold text-sm">${loan.lender}</h4>
+                        </div>
+                        <button onclick="event.stopPropagation(); deleteLoan('${loan.id}')" class="text-rose-400 text-xs hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>
                     </div>
-                    <div class="flex justify-between text-xs">
-                        <span class="text-theme-muted">Balance: <strong class="text-rose-600">${formatPHP(loan.overdueAmount)}</strong></span>
+                    <div class="flex justify-between text-xs pt-1">
+                        <span class="text-theme-muted">Balance / Overdue: <strong class="text-rose-600">${formatPHP(loan.overdueAmount)}</strong></span>
                         <span class="bg-theme-accent text-theme-primary px-2 py-0.5 rounded text-[10px] font-semibold">Period: ${periodName}</span>
                     </div>
+                    <p class="text-[10px] text-theme-accent text-right font-medium">Click to view Waterfall Ledger &rarr;</p>
                 `;
                 container.appendChild(div);
             });
@@ -987,7 +1019,15 @@
             if (!lender || !periodId) return;
 
             if (!appData.loans) appData.loans = [];
-            appData.loans.push({ id: Date.now().toString(), lender, overdueAmount, periodId });
+            appData.loans.push({
+                id: Date.now().toString(),
+                lender,
+                overdueAmount,
+                periodId,
+                entries: [
+                    { type: 'due', date: new Date().toISOString().split('T')[0], amount: overdueAmount, title: 'Initial Overdue' }
+                ]
+            });
             closeAddLoanModal();
             saveData();
         }
@@ -996,11 +1036,152 @@
             saveData();
         }
 
+        // Waterfall Ledger Modal Logic
+        function openLoanLedgerModal(loanId) {
+            currentActiveLoanId = loanId;
+            let loan = appData.loans.find(l => l.id === loanId);
+            if (!loan) return;
+
+            document.getElementById('ledgerModalTitle').innerText = `${loan.lender} - Waterfall Ledger`;
+            renderLedgerEntries(loan);
+            document.getElementById('loanLedgerModal').classList.remove('hidden');
+        }
+
+        function closeLoanLedgerModal() {
+            document.getElementById('loanLedgerModal').classList.add('hidden');
+            currentActiveLoanId = null;
+        }
+
+        function renderLedgerEntries(loan) {
+            const container = document.getElementById('ledgerContentContainer');
+            container.innerHTML = '';
+
+            if (!loan.entries) {
+                loan.entries = [{ type: 'due', date: new Date().toISOString().split('T')[0], amount: loan.overdueAmount, title: 'Initial Overdue' }];
+            }
+
+            loan.entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+            let runningBalance = 0;
+
+            loan.entries.forEach((entry, idx) => {
+                let isPayment = entry.type === 'payment';
+                if (isPayment) runningBalance -= Number(entry.amount);
+                else runningBalance += Number(entry.amount);
+
+                let rowDiv = document.createElement('div');
+                rowDiv.className = `p-3 rounded-xl border border-theme-border text-xs space-y-1 ${isPayment ? 'bg-emerald-50/60 border-emerald-200' : 'bg-theme-bg'}`;
+                
+                rowDiv.innerHTML = `
+                    <div class="flex justify-between items-center font-bold">
+                        <span class="${isPayment ? 'text-emerald-700' : 'text-theme-primary'}">
+                            ${isPayment ? `<i class="fa-solid fa-circle-check mr-1"></i> Payment (${entry.periodName || 'Period'})` : `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Amount Due (${entry.title || 'Due'})`}
+                        </span>
+                        <div class="flex items-center space-x-2">
+                            <span class="${isPayment ? 'text-emerald-600' : 'text-rose-600'}">${isPayment ? '-' : '+'}${formatPHP(entry.amount)}</span>
+                            <button onclick="deleteLedgerEntry('${loan.id}', ${idx})" class="text-rose-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-theme-muted">
+                        <span>Date: ${entry.date}</span>
+                        <span class="font-bold ${runningBalance < 0 ? 'text-blue-600' : 'text-theme-text'}">Running Balance: ${formatPHP(runningBalance)} ${runningBalance < 0 ? '(Credit)' : ''}</span>
+                    </div>
+                `;
+                container.appendChild(rowDiv);
+            });
+        }
+
+        function openLedgerAddDueModal() {
+            document.getElementById('ledgerDueTitleInput').value = 'Monthly Bill';
+            document.getElementById('ledgerDueAmountInput').value = '';
+            document.getElementById('ledgerDueDateInput').value = new Date().toISOString().split('T')[0];
+            document.getElementById('addLedgerDueModal').classList.remove('hidden');
+        }
+        function closeLedgerAddDueModal() { document.getElementById('addLedgerDueModal').classList.add('hidden'); }
+        function saveLedgerDue() {
+            let title = document.getElementById('ledgerDueTitleInput').value;
+            let amount = Number(document.getElementById('ledgerDueAmountInput').value);
+            let date = document.getElementById('ledgerDueDateInput').value;
+            if (!title || !amount || !date) return;
+
+            let loan = appData.loans.find(l => l.id === currentActiveLoanId);
+            if (loan) {
+                loan.entries.push({ type: 'due', title, amount, date });
+                closeLedgerAddDueModal();
+                saveData();
+                renderLedgerEntries(loan);
+            }
+        }
+
+        function openLedgerAddPaymentModal() {
+            let select = document.getElementById('ledgerPaymentPeriodSelect');
+            select.innerHTML = '';
+            let periods = getActivePeriods();
+            periods.forEach(p => {
+                let opt = document.createElement('option');
+                opt.value = p.id;
+                opt.innerText = p.name;
+                select.appendChild(opt);
+            });
+            document.getElementById('ledgerPaymentAmountInput').value = '';
+            document.getElementById('ledgerPaymentDateInput').value = new Date().toISOString().split('T')[0];
+            document.getElementById('addLedgerPaymentModal').classList.remove('hidden');
+        }
+        function closeLedgerAddPaymentModal() { document.getElementById('addLedgerPaymentModal').classList.add('hidden'); }
+        function saveLedgerPayment() {
+            let amount = Number(document.getElementById('ledgerPaymentAmountInput').value);
+            let date = document.getElementById('ledgerPaymentDateInput').value;
+            let periodId = document.getElementById('ledgerPaymentPeriodSelect').value;
+            if (!amount || !date || !periodId) return;
+
+            let periods = getActivePeriods();
+            let chosenPeriod = periods.find(p => p.id === periodId);
+            let loan = appData.loans.find(l => l.id === currentActiveLoanId);
+
+            if (loan && chosenPeriod) {
+                loan.entries.push({
+                    type: 'payment',
+                    amount,
+                    date,
+                    periodId: chosenPeriod.id,
+                    periodName: chosenPeriod.name
+                });
+
+                let mData = getActiveMonthData();
+                mData.expenses.push({
+                    id: Date.now().toString(),
+                    title: `Loan Payment: ${loan.lender}`,
+                    category: 'Bills',
+                    amount,
+                    periodId: chosenPeriod.id,
+                    isPaid: false
+                });
+
+                closeLedgerAddPaymentModal();
+                saveData();
+                renderLedgerEntries(loan);
+            }
+        }
+
+        function deleteLedgerEntry(loanId, entryIdx) {
+            let loan = appData.loans.find(l => l.id === loanId);
+            if (loan && loan.entries.length > 1) {
+                loan.entries.splice(entryIdx, 1);
+                saveData();
+                renderLedgerEntries(loan);
+            } else {
+                alert('Cannot delete the last remaining entry.');
+            }
+        }
+
         // Settings & Frequency Customization UI
         function initSettingsUI() {
-            let freq = appData.settings.payFrequency || 'Bi Monthly';
-            document.getElementById('settingPayFrequency').value = freq;
-            renderPeriodLabelsConfig(freq);
+            let s = appData.settings;
+            document.getElementById('settingPayFrequency').value = s.payFrequency || 'Bi Monthly';
+            document.getElementById('settingEarnedCurrency').value = s.earnedCurrency || 'GBP';
+            document.getElementById('settingHourlyRate').value = s.hourlyRate || 15;
+            document.getElementById('settingDailyRate').value = s.dailyRate || 120;
+            document.getElementById('settingExchangeRate').value = s.exchangeRate || 74.50;
+            renderPeriodLabelsConfig(s.payFrequency || 'Bi Monthly');
         }
 
         function updatePayFrequencySetting(newFreq) {
@@ -1035,43 +1216,57 @@
             saveData();
         }
 
-        // Reminders & Notes
-        function renderReminders() {
-            const container = document.getElementById('remindersContainer');
-            container.innerHTML = '';
-            if (!appData.reminders || appData.reminders.length === 0) {
-                container.innerHTML = `<div class="bg-theme-card border border-theme-border rounded-xl p-6 text-center text-xs text-theme-muted">No reminders added yet.</div>`;
-                return;
-            }
-            appData.reminders.forEach(rem => {
-                let div = document.createElement('div');
-                div.className = 'bg-theme-card border border-theme-border rounded-xl p-3 flex justify-between items-center shadow-sm text-xs';
-                div.innerHTML = `<span><b>${rem.title}</b> (${rem.date})</span>`;
-                container.appendChild(div);
-            });
-        }
-        function openAddReminderModal() { document.getElementById('addReminderModal').classList.remove('hidden'); }
-        function closeAddReminderModal() { document.getElementById('addReminderModal').classList.add('hidden'); }
-        function saveNewReminder() {
-            let title = document.getElementById('reminderTitleInput').value;
-            let date = document.getElementById('reminderDateInput').value;
-            if (!title || !date) return;
-            if (!appData.reminders) appData.reminders = [];
-            appData.reminders.push({ id: Date.now().toString(), title, date });
-            closeAddReminderModal();
-            saveData();
-        }
-
+        // Notes Manager
         function openNotesModal() { document.getElementById('notesModal').classList.remove('hidden'); renderNotesList(); }
         function closeNotesModal() { document.getElementById('notesModal').classList.add('hidden'); }
+        
         function renderNotesList() {
             const container = document.getElementById('notesListContainer');
-            container.innerHTML = `<p class="text-xs text-theme-muted text-center py-2">Notes manager active.</p>`;
+            container.innerHTML = '';
+            if (!appData.notes || appData.notes.length === 0) {
+                container.innerHTML = `<p class="text-xs text-theme-muted text-center py-4">No notes yet. Click below to create one!</p>`;
+            } else {
+                appData.notes.forEach(note => {
+                    let div = document.createElement('div');
+                    div.className = 'bg-theme-bg border border-theme-border rounded-xl p-3 space-y-2';
+                    div.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <input type="text" value="${note.title || ''}" onchange="updateNoteTitle('${note.id}', this.value)" placeholder="Note Title" class="font-bold text-xs bg-transparent border-b border-theme-border pb-1 w-full focus:outline-none focus:border-theme-primary">
+                            <button onclick="deleteNote('${note.id}')" class="text-rose-400 hover:text-rose-600 text-xs ml-2"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                        <textarea rows="3" onchange="updateNoteContent('${note.id}', this.value)" placeholder="Write your note here..." class="w-full bg-theme-card border border-theme-border rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-theme-primary resize-none">${note.content || ''}</textarea>
+                    `;
+                    container.appendChild(div);
+                });
+            }
             document.getElementById('notesCountBadge').innerText = (appData.notes || []).length;
         }
+
         function addNewNote() {
             if (!appData.notes) appData.notes = [];
             appData.notes.push({ id: Date.now().toString(), title: 'New Note', content: '' });
+            saveData();
+            renderNotesList();
+        }
+
+        function updateNoteTitle(id, title) {
+            let note = appData.notes.find(n => n.id === id);
+            if (note) {
+                note.title = title;
+                saveData();
+            }
+        }
+
+        function updateNoteContent(id, content) {
+            let note = appData.notes.find(n => n.id === id);
+            if (note) {
+                note.content = content;
+                saveData();
+            }
+        }
+
+        function deleteNote(id) {
+            appData.notes = appData.notes.filter(n => n.id !== id);
             saveData();
             renderNotesList();
         }
@@ -1081,9 +1276,9 @@
             let phpAmount = Number(document.getElementById('tcExpenseAmount').value);
             if (!phpAmount) return;
             let s = appData.settings;
-            let foreign = phpAmount / s.exchangeRate;
-            let hours = foreign / s.hourlyRate;
-            let days = foreign / s.dailyRate;
+            let foreign = phpAmount / Number(s.exchangeRate);
+            let hours = foreign / Number(s.hourlyRate);
+            let days = foreign / Number(s.dailyRate);
             document.getElementById('resHours').innerText = hours.toFixed(1) + ' hrs';
             document.getElementById('resDays').innerText = days.toFixed(1) + ' days';
             document.getElementById('tcConversionNote').innerText = `Based on 1 ${s.earnedCurrency} = ₱${s.exchangeRate}`;
