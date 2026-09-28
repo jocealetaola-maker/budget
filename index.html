@@ -80,7 +80,6 @@
             --muted-color: #a8a29e;
             --border-color: #fecdd3;
         }
-        /* Prevent double tap zoom on mobile */
         button, input, select, textarea {
             touch-action: manipulation;
         }
@@ -133,7 +132,6 @@
             </div>
         </div>
         <div class="flex items-center space-x-2">
-            <!-- Notes Trigger Button -->
             <button onclick="openNotesModal()" class="relative p-2.5 rounded-xl bg-theme-accent text-theme-primary hover:opacity-80 transition flex items-center space-x-1 px-3 text-sm font-medium">
                 <i class="fa-regular fa-note-sticky"></i>
                 <span class="hidden sm:inline">Notes</span>
@@ -147,8 +145,6 @@
         
         <!-- TAB 1: Budget Tracker & Month Chooser -->
         <section id="tab-budget" class="space-y-4 tab-content">
-            
-            <!-- Month Selector Bar -->
             <div class="bg-theme-card border border-theme-border rounded-2xl p-3 flex justify-between items-center shadow-sm">
                 <button onclick="shiftMonth(-1)" class="w-9 h-9 rounded-xl bg-theme-accent text-theme-primary flex items-center justify-center hover:opacity-80 transition">
                     <i class="fa-solid fa-chevron-left"></i>
@@ -162,7 +158,6 @@
                 </button>
             </div>
 
-            <!-- Summary Card for Selected Month -->
             <div class="bg-theme-card border border-theme-border rounded-2xl p-4 shadow-sm">
                 <h2 class="text-xs font-semibold uppercase tracking-wider text-theme-muted mb-2">Month Financial Summary (₱ PHP)</h2>
                 <div class="grid grid-cols-2 gap-3 mb-3">
@@ -181,12 +176,10 @@
                 </div>
             </div>
 
-            <!-- Pay Periods Header -->
             <div class="flex justify-between items-center">
                 <h3 class="font-bold text-sm">Pay Periods (<span id="payPeriodModeLabel">Bi Monthly</span>)</h3>
             </div>
 
-            <!-- Pay Periods List -->
             <div id="payPeriodsContainer" class="space-y-4"></div>
         </section>
 
@@ -211,7 +204,6 @@
                 <button onclick="switchRecurringSubTab('loans')" id="subnav-loans" class="flex-1 py-1.5 rounded-lg text-xs font-semibold text-theme-muted hover:text-theme-primary transition">Loans & Ledger</button>
             </div>
 
-            <!-- SubTab 1: Period Expenses -->
             <div id="subtab-bills" class="space-y-3">
                 <div class="flex justify-between items-center">
                     <div>
@@ -222,7 +214,6 @@
                 <div id="recurringColumnsContainer" class="space-y-4"></div>
             </div>
 
-            <!-- SubTab 2: Loans & Waterfall Ledger -->
             <div id="subtab-loans" class="space-y-3 hidden">
                 <div class="flex justify-between items-center">
                     <div>
@@ -287,7 +278,6 @@
 
                 <hr class="border-theme-border">
 
-                <!-- CATEGORIES CUSTOMIZATION -->
                 <div class="space-y-2">
                     <label class="block text-xs font-semibold text-theme-muted">Customize Expense Categories</label>
                     <div id="categoryConfigList" class="space-y-2 max-h-32 overflow-y-auto"></div>
@@ -339,7 +329,7 @@
 
     </main>
 
-    <!-- Bottom Navigation Bar (5 Items) -->
+    <!-- Bottom Navigation Bar -->
     <nav class="fixed bottom-0 left-0 right-0 bg-theme-card/95 backdrop-blur border-t border-theme-border py-2 px-3 z-30 max-w-md mx-auto flex justify-around">
         <button onclick="switchTab('budget')" id="nav-budget" class="flex flex-col items-center space-y-1 text-theme-primary">
             <i class="fa-solid fa-calendar-days text-base"></i>
@@ -363,7 +353,7 @@
         </button>
     </nav>
 
-    <!-- MODAL: Multi-Notes Manager -->
+    <!-- MODALS -->
     <div id="notesModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
         <div class="bg-theme-card w-full max-w-lg rounded-t-3xl sm:rounded-2xl max-h-[85vh] flex flex-col shadow-xl border border-theme-border overflow-hidden">
             <div class="p-4 border-b border-theme-border flex justify-between items-center bg-theme-bg">
@@ -377,7 +367,6 @@
         </div>
     </div>
 
-    <!-- MODAL: Add Income Source -->
     <div id="addIncomeModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="bg-theme-card w-full max-w-sm rounded-2xl p-4 shadow-xl border border-theme-border space-y-3">
             <h3 class="font-bold text-base">Add Income Source</h3>
@@ -397,7 +386,6 @@
         </div>
     </div>
 
-    <!-- MODAL: Add/Edit Recurring Expense -->
     <div id="expenseModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="bg-theme-card w-full max-w-sm rounded-2xl p-4 shadow-xl border border-theme-border space-y-3">
             <h3 id="expenseModalTitle" class="font-bold text-base">Add Recurring Expense</h3>
@@ -422,7 +410,6 @@
         </div>
     </div>
 
-    <!-- MODAL: Add Loan -->
     <div id="addLoanModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="bg-theme-card w-full max-w-sm rounded-2xl p-4 shadow-xl border border-theme-border space-y-3">
             <h3 class="font-bold text-base">Add Loan / Lender</h3>
@@ -451,7 +438,6 @@
         </div>
     </div>
 
-    <!-- MODAL: Waterfall Ledger for Selected Loan -->
     <div id="loanLedgerModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
         <div class="bg-theme-card w-full max-w-lg rounded-t-3xl sm:rounded-2xl max-h-[90vh] flex flex-col shadow-xl border border-theme-border overflow-hidden">
             <div class="p-4 border-b border-theme-border flex justify-between items-center bg-theme-bg">
@@ -469,7 +455,6 @@
         </div>
     </div>
 
-    <!-- MODAL: Add Amount Due to Ledger -->
     <div id="addLedgerDueModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="bg-theme-card w-full max-w-sm rounded-2xl p-4 shadow-xl border border-theme-border space-y-3">
             <h3 class="font-bold text-base">Add Amount Due</h3>
@@ -492,7 +477,6 @@
         </div>
     </div>
 
-    <!-- MODAL: Add Payment to Ledger -->
     <div id="addLedgerPaymentModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="bg-theme-card w-full max-w-sm rounded-2xl p-4 shadow-xl border border-theme-border space-y-3">
             <h3 class="font-bold text-base">Add Loan Payment</h3>
@@ -517,41 +501,44 @@
 
     <!-- JavaScript Application Logic -->
     <script>
-        // Supabase Hardcoded Credentials
         const SUPABASE_URL = "https://burvheyxcjgrotqjmmbl.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1cnZoZXl4Y2pncm90cWptbWJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2MTEyNDMsImV4cCI6MjEwNjE4NzI0M30.ETKUDlMXSQzEE30i3Zop9mV_Ok86IOyb0ijJKWJYKGc";
         let sb = null;
 
-        let currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+        let currentMonth = new Date().toISOString().slice(0, 7);
         let isSignupMode = false;
         let currentUser = null;
         let currentActiveLoanId = null;
 
-        // UI View State (Not saved to DB)
         let uiState = {
             collapsedPeriods: {}
         };
 
-        let appData = {
-            theme: 'lilac',
-            monthsData: {}, // Keyed by YYYY-MM: { incomes: {}, hiddenRecurring: [], paidStatus: {} }
-            recurringExpenses: [], // Master list of rolling recurring expenses copied to all months
-            loans: [],
-            notes: [],
-            settings: { 
-                earnedCurrency: 'GBP', 
-                hourlyRate: 15, 
-                dailyRate: 120, 
-                exchangeRate: 74.50,
-                payFrequency: 'Bi Monthly',
-                customCategories: ['Bills & Utilities', 'Food & Groceries', 'Transport', 'Subscriptions', 'Health & Personal', 'Miscellaneous'],
-                customPeriodNames: {
-                    'Monthly': ['Full Month'],
-                    'Bi Monthly': ['Mid-Month', 'End of Month'],
-                    'Weekly': ['Week 1', 'Week 2', 'Week 3', 'Week 4']
+        // Clean default application state structure
+        function getDefaultAppData() {
+            return {
+                theme: 'lilac',
+                monthsData: {},
+                recurringExpenses: [],
+                loans: [],
+                notes: [],
+                settings: { 
+                    earnedCurrency: 'GBP', 
+                    hourlyRate: 15, 
+                    dailyRate: 120, 
+                    exchangeRate: 74.50,
+                    payFrequency: 'Bi Monthly',
+                    customCategories: ['Bills & Utilities', 'Food & Groceries', 'Transport', 'Subscriptions', 'Health & Personal', 'Miscellaneous'],
+                    customPeriodNames: {
+                        'Monthly': ['Full Month'],
+                        'Bi Monthly': ['Mid-Month', 'End of Month'],
+                        'Weekly': ['Week 1', 'Week 2', 'Week 3', 'Week 4']
+                    }
                 }
-            }
-        };
+            };
+        }
+
+        let appData = getDefaultAppData();
 
         async function initApp() {
             try {
@@ -567,6 +554,7 @@
                 document.getElementById('authOverlay').classList.add('hidden');
                 await loadUserData();
             } else {
+                document.getElementById('authOverlay').classList.add('flex');
                 document.getElementById('authOverlay').classList.remove('hidden');
             }
 
@@ -615,13 +603,17 @@
             if (sb) await sb.auth.signOut();
             localStorage.removeItem('lifehub_current_user');
             currentUser = null;
+            appData = getDefaultAppData(); // Reset state on sign out
             document.getElementById('authOverlay').classList.remove('hidden');
         }
 
         async function loadUserData() {
             if (!currentUser) return;
             
-            // Attempt fetching from Supabase cloud database
+            // Explicitly start fresh to avoid memory leaking between accounts
+            appData = getDefaultAppData();
+
+            let cloudLoaded = false;
             if (sb) {
                 try {
                     const { data: { user } } = await sb.auth.getUser();
@@ -634,35 +626,31 @@
 
                         if (data && data.app_data) {
                             appData = data.app_data;
+                            cloudLoaded = true;
                         } else {
+                            // Brand new user profile row
                             await sb.from('user_profiles').upsert({ id: user.id, app_data: appData });
+                            cloudLoaded = true;
                         }
                     }
                 } catch(e) {
-                    console.error("Cloud fetch failed, using local fallback:", e);
+                    console.error("Cloud fetch failed:", e);
                 }
             }
 
-            // Fallback to localStorage if cloud didn't load properly
-            const saved = localStorage.getItem(`lifehub_data_${currentUser}`);
-            if (saved && (!appData.monthsData || Object.keys(appData.monthsData).length === 0)) {
-                try { appData = JSON.parse(saved); } catch(e) {}
+            // Fallback to local storage cache if offline or cloud fetch failed
+            if (!cloudLoaded) {
+                const saved = localStorage.getItem(`lifehub_data_${currentUser}`);
+                if (saved) {
+                    try { appData = JSON.parse(saved); } catch(e) {}
+                }
             }
 
             if (!appData.monthsData) appData.monthsData = {};
             if (!appData.recurringExpenses) appData.recurringExpenses = [];
             if (!appData.loans) appData.loans = [];
             if (!appData.notes) appData.notes = [];
-            if (!appData.settings.customPeriodNames) {
-                appData.settings.customPeriodNames = {
-                    'Monthly': ['Full Month'],
-                    'Bi Monthly': ['Mid-Month', 'End of Month'],
-                    'Weekly': ['Week 1', 'Week 2', 'Week 3', 'Week 4']
-                };
-            }
-            if (!appData.settings.customCategories) {
-                appData.settings.customCategories = ['Bills & Utilities', 'Food & Groceries', 'Transport', 'Subscriptions', 'Health & Personal', 'Miscellaneous'];
-            }
+
             setTheme(appData.theme || 'lilac', false);
             initSettingsUI();
             populateCategoryDropdowns();
@@ -672,13 +660,11 @@
         async function saveData() {
             if (!currentUser) return;
             
-            // Save to local backup cache instantly
             localStorage.setItem(`lifehub_data_${currentUser}`, JSON.stringify(appData));
             renderAll();
 
             if (!sb) return;
 
-            // Sync to Supabase cloud database
             try {
                 const { data: { user } } = await sb.auth.getUser();
                 if (user) {
@@ -775,7 +761,6 @@
             if (!mData.paidStatus) mData.paidStatus = {};
             if (!mData.incomes) mData.incomes = {};
 
-            // Roll over all master recurring items into this active month view (unless hidden for this specific month)
             let computedExpenses = [];
             if (appData.recurringExpenses && appData.recurringExpenses.length > 0) {
                 appData.recurringExpenses.forEach(rec => {
@@ -860,7 +845,6 @@
 
                 if (!isCollapsed) {
                     html += `
-                        <!-- Mini Period Summary -->
                         <div class="grid grid-cols-2 gap-2 bg-theme-bg p-2.5 rounded-xl border border-theme-border text-xs">
                             <div>
                                 <span class="text-[10px] text-theme-muted block">Money Left</span>
@@ -931,7 +915,6 @@
             });
         }
 
-        // Custom Categories Setup
         function populateCategoryDropdowns() {
             let select = document.getElementById('expenseCategory');
             select.innerHTML = '';
@@ -1086,7 +1069,6 @@
             }
         }
 
-        // Unified Add/Edit Recurring Expense
         function openExpenseModal(periodId, recurringId = null) {
             document.getElementById('targetExpensePeriodId').value = periodId;
             document.getElementById('editExpenseId').value = recurringId || '';
@@ -1141,13 +1123,11 @@
             saveData();
         }
 
-        // Delete permanently from master rolling recurring list
         function deleteRecurringMaster(recurringId) {
             appData.recurringExpenses = appData.recurringExpenses.filter(r => r.id !== recurringId);
             saveData();
         }
 
-        // Delete for current month only (hides the rolling instance for this specific month)
         function hideRecurringForMonth(recurringId) {
             let mData = getActiveMonthData();
             if (!mData.hiddenRecurring.includes(recurringId)) {
@@ -1162,7 +1142,6 @@
             saveData();
         }
 
-        // Loans Tab & Waterfall Ledger Planner
         function renderLoans() {
             const container = document.getElementById('loansListContainer');
             container.innerHTML = '';
@@ -1229,7 +1208,6 @@
             saveData();
         }
 
-        // Waterfall Ledger Modal Logic
         function openLoanLedgerModal(loanId) {
             currentActiveLoanId = loanId;
             let loan = appData.loans.find(l => l.id === loanId);
@@ -1253,7 +1231,6 @@
                 loan.entries = [{ type: 'due', date: loan.dueDate || new Date().toISOString().split('T')[0], amount: loan.overdueAmount, title: 'Initial Overdue' }];
             }
 
-            // Sort chronologically by date
             loan.entries.sort((a, b) => new Date(a.date) - new Date(b.date));
             let runningBalance = 0;
 
@@ -1291,7 +1268,6 @@
             document.getElementById('ledgerDueTitleInput').value = 'Monthly Bill';
             document.getElementById('ledgerDueAmountInput').value = loan && loan.monthlyAmountDue ? loan.monthlyAmountDue : '';
             
-            // Calculate next due date automatically (+1 month to the latest due entry)
             let nextDateStr = new Date().toISOString().split('T')[0];
             if (loan && loan.entries) {
                 let dueEntries = loan.entries.filter(e => e.type === 'due');
@@ -1383,7 +1359,6 @@
             }
         }
 
-        // Settings & Frequency Customization UI
         function initSettingsUI() {
             let s = appData.settings;
             document.getElementById('settingPayFrequency').value = s.payFrequency || 'Bi Monthly';
@@ -1426,7 +1401,6 @@
             saveData();
         }
 
-        // Notes Manager
         function openNotesModal() { document.getElementById('notesModal').classList.remove('hidden'); renderNotesList(); }
         function closeNotesModal() { document.getElementById('notesModal').classList.add('hidden'); }
         
@@ -1481,7 +1455,6 @@
             renderNotesList();
         }
 
-        // Time Cost & Settings
         function calculateTimeCost() {
             let phpAmount = Number(document.getElementById('tcExpenseAmount').value);
             if (!phpAmount) return;
@@ -1494,6 +1467,7 @@
             document.getElementById('tcConversionNote').innerText = `Based on 1 ${s.earnedCurrency} = ₱${s.exchangeRate}`;
             document.getElementById('tcResultCard').classList.remove('hidden');
         }
+
         function saveSettings() {
             appData.settings.earnedCurrency = document.getElementById('settingEarnedCurrency').value;
             appData.settings.hourlyRate = Number(document.getElementById('settingHourlyRate').value);
