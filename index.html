@@ -565,7 +565,7 @@
             if (savedUser) {
                 currentUser = savedUser;
                 document.getElementById('authOverlay').classList.add('hidden');
-                loadUserData();
+                await loadUserData();
             } else {
                 document.getElementById('authOverlay').classList.remove('hidden');
             }
@@ -598,7 +598,7 @@
                 currentUser = userInput.toLowerCase();
                 localStorage.setItem('lifehub_current_user', currentUser);
                 document.getElementById('authOverlay').classList.add('hidden');
-                loadUserData();
+                await loadUserData();
             } else {
                 if (sb) {
                     const { data, error } = await sb.auth.signInWithPassword({ email: pseudoEmail, password: password });
@@ -607,7 +607,7 @@
                 currentUser = userInput.toLowerCase();
                 localStorage.setItem('lifehub_current_user', currentUser);
                 document.getElementById('authOverlay').classList.add('hidden');
-                loadUserData();
+                await loadUserData();
             }
         }
 
@@ -620,30 +620,39 @@
 
         async function loadUserData() {
             if (!currentUser) return;
+            
+            // Attempt fetching from Supabase cloud database
+            if (sb) {
+                try {
+                    const { data: { user } } = await sb.auth.getUser();
+                    if (user) {
+                        const { data, error } = await sb
+                            .from('user_profiles')
+                            .select('app_data')
+                            .eq('id', user.id)
+                            .single();
+
+                        if (data && data.app_data) {
+                            appData = data.app_data;
+                        } else {
+                            await sb.from('user_profiles').upsert({ id: user.id, app_data: appData });
+                        }
+                    }
+                } catch(e) {
+                    console.error("Cloud fetch failed, using local fallback:", e);
+                }
+            }
+
+            // Fallback to localStorage if cloud didn't load properly
             const saved = localStorage.getItem(`lifehub_data_${currentUser}`);
-            if (saved) {
+            if (saved && (!appData.monthsData || Object.keys(appData.monthsData).length === 0)) {
                 try { appData = JSON.parse(saved); } catch(e) {}
             }
+
             if (!appData.monthsData) appData.monthsData = {};
-            if (!appData.recurringExpenses) {
-                appData.recurringExpenses = [];
-                Object.keys(appData.monthsData).forEach(mKey => {
-                    let m = appData.monthsData[mKey];
-                    if (m.expenses) {
-                        m.expenses.forEach(ex => {
-                            if (!appData.recurringExpenses.some(re => re.title === ex.title && re.periodId === ex.periodId)) {
-                                appData.recurringExpenses.push({
-                                    id: ex.id || Date.now().toString() + Math.random(),
-                                    title: ex.title,
-                                    category: ex.category,
-                                    amount: ex.amount,
-                                    periodId: ex.periodId
-                                });
-                            }
-                        });
-                    }
-                });
-            }
+            if (!appData.recurringExpenses) appData.recurringExpenses = [];
+            if (!appData.loans) appData.loans = [];
+            if (!appData.notes) appData.notes = [];
             if (!appData.settings.customPeriodNames) {
                 appData.settings.customPeriodNames = {
                     'Monthly': ['Full Month'],
@@ -654,16 +663,34 @@
             if (!appData.settings.customCategories) {
                 appData.settings.customCategories = ['Bills & Utilities', 'Food & Groceries', 'Transport', 'Subscriptions', 'Health & Personal', 'Miscellaneous'];
             }
-            setTheme(appData.theme, false);
+            setTheme(appData.theme || 'lilac', false);
             initSettingsUI();
             populateCategoryDropdowns();
             renderAll();
         }
 
-        function saveData() {
+        async function saveData() {
             if (!currentUser) return;
+            
+            // Save to local backup cache instantly
             localStorage.setItem(`lifehub_data_${currentUser}`, JSON.stringify(appData));
             renderAll();
+
+            if (!sb) return;
+
+            // Sync to Supabase cloud database
+            try {
+                const { data: { user } } = await sb.auth.getUser();
+                if (user) {
+                    await sb.from('user_profiles').upsert({
+                        id: user.id,
+                        app_data: appData,
+                        updated_at: new Date().toISOString()
+                    });
+                }
+            } catch(e) {
+                console.error("Cloud sync save failed:", e);
+            }
         }
 
         function shiftMonth(delta) {
@@ -948,7 +975,6 @@
             renderCategorySettings();
             populateCategoryDropdowns();
         }
-
 
         function renderRecurringColumns() {
             const container = document.getElementById('recurringColumnsContainer');
