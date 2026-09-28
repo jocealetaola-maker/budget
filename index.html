@@ -83,6 +83,12 @@
         button, input, select, textarea {
             touch-action: manipulation;
         }
+        /* Hide number input spinners for cleaner UI */
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
     </style>
 </head>
 <body class="bg-theme-bg text-theme-text min-h-screen font-sans transition-colors duration-300 pb-24">
@@ -382,6 +388,29 @@
             <div class="flex space-x-2 pt-2">
                 <button onclick="closeAddIncomeModal()" class="flex-1 bg-theme-bg py-2 rounded-xl text-xs font-medium border border-theme-border">Cancel</button>
                 <button onclick="saveNewIncome()" class="flex-1 bg-theme-primary text-white py-2 rounded-xl text-xs font-medium">Add Income</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="addManualExpenseModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-theme-card w-full max-w-sm rounded-2xl p-4 shadow-xl border border-theme-border space-y-3">
+            <h3 class="font-bold text-base">Add Manual Expense</h3>
+            <input type="hidden" id="targetManualExpensePeriodId">
+            <div>
+                <label class="block text-xs text-theme-muted mb-1">Title</label>
+                <input type="text" id="manualExpenseTitle" placeholder="e.g. Groceries, Dinner" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs text-theme-muted mb-1">Category</label>
+                <select id="manualExpenseCategory" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm"></select>
+            </div>
+            <div>
+                <label class="block text-xs text-theme-muted mb-1">Amount (₱ PHP)</label>
+                <input type="number" id="manualExpenseAmount" placeholder="0.00" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+            </div>
+            <div class="flex space-x-2 pt-2">
+                <button onclick="closeAddManualExpenseModal()" class="flex-1 bg-theme-bg py-2 rounded-xl text-xs font-medium border border-theme-border">Cancel</button>
+                <button onclick="saveManualExpense()" class="flex-1 bg-theme-primary text-white py-2 rounded-xl text-xs font-medium">Add Expense</button>
             </div>
         </div>
     </div>
@@ -754,14 +783,17 @@
 
         function getActiveMonthData() {
             if (!appData.monthsData[currentMonth]) {
-                appData.monthsData[currentMonth] = { incomes: {}, hiddenRecurring: [], paidStatus: {} };
+                appData.monthsData[currentMonth] = { incomes: {}, hiddenRecurring: [], paidStatus: {}, manualExpenses: {} };
             }
             let mData = appData.monthsData[currentMonth];
             if (!mData.hiddenRecurring) mData.hiddenRecurring = [];
             if (!mData.paidStatus) mData.paidStatus = {};
             if (!mData.incomes) mData.incomes = {};
+            if (!mData.manualExpenses) mData.manualExpenses = {};
 
             let computedExpenses = [];
+            
+            // Map regular recurring expenses
             if (appData.recurringExpenses && appData.recurringExpenses.length > 0) {
                 appData.recurringExpenses.forEach(rec => {
                     if (!mData.hiddenRecurring.includes(rec.id)) {
@@ -771,13 +803,104 @@
                             category: rec.category,
                             amount: rec.amount,
                             periodId: rec.periodId,
-                            isPaid: !!mData.paidStatus[rec.id]
+                            isPaid: !!mData.paidStatus[rec.id],
+                            isLoan: false,
+                            isManual: false
                         });
                     }
                 });
             }
+
+            // Map manual non-recurring expenses for this month specifically
+            Object.keys(mData.manualExpenses).forEach(pId => {
+                mData.manualExpenses[pId].forEach(exp => {
+                    computedExpenses.push({
+                        id: exp.id,
+                        title: exp.title,
+                        category: exp.category || 'Manual',
+                        amount: exp.amount,
+                        periodId: pId,
+                        isPaid: !!mData.paidStatus[exp.id],
+                        isLoan: false,
+                        isManual: true
+                    });
+                });
+            });
+
+            // Sync loan ledger payments mapped to this specific month and period directly into Budget views
+            if (appData.loans && appData.loans.length > 0) {
+                appData.loans.forEach(loan => {
+                    if (loan.entries) {
+                        loan.entries.forEach((entry) => {
+                            if (!entry.id) entry.id = 'entry_' + Math.random().toString(36).substr(2, 9);
+                            if (entry.type === 'payment' && entry.date.startsWith(currentMonth)) {
+                                computedExpenses.push({
+                                    id: entry.id,
+                                    title: `[Loan] ${loan.lender}`,
+                                    category: 'Debt/Loan Payment',
+                                    amount: entry.amount,
+                                    periodId: entry.periodId,
+                                    isPaid: !!mData.paidStatus[entry.id], // Set to true when saved via Add Payment
+                                    isLoan: true,
+                                    isManual: false,
+                                    loanId: loan.id
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+
             mData.expenses = computedExpenses;
             return mData;
+        }
+
+        function updateExpenseAmount(expId, newAmount, loanId, isManual, periodId) {
+            let amt = Number(newAmount);
+            if (loanId) {
+                let loan = appData.loans.find(l => l.id === loanId);
+                if (loan) {
+                    let entry = loan.entries.find(e => e.id === expId);
+                    if (entry) {
+                        entry.amount = amt;
+                        saveData();
+                    }
+                }
+            } else if (isManual) {
+                let mData = appData.monthsData[currentMonth];
+                if (mData && mData.manualExpenses && mData.manualExpenses[periodId]) {
+                    let exp = mData.manualExpenses[periodId].find(e => e.id === expId);
+                    if (exp) {
+                        exp.amount = amt;
+                        saveData();
+                    }
+                }
+            } else {
+                let rec = appData.recurringExpenses.find(r => r.id === expId);
+                if (rec) {
+                    rec.amount = amt;
+                    saveData();
+                }
+            }
+        }
+
+        function deleteLoanPayment(loanId, entryId) {
+            let loan = appData.loans.find(l => l.id === loanId);
+            if (loan) {
+                let idx = loan.entries.findIndex(e => e.id === entryId);
+                if (idx > -1) {
+                    loan.entries.splice(idx, 1);
+                    saveData();
+                }
+            }
+        }
+
+        function deleteManualExpense(periodId, expId) {
+            let mData = appData.monthsData[currentMonth];
+            if (mData && mData.manualExpenses && mData.manualExpenses[periodId]) {
+                mData.manualExpenses[periodId] = mData.manualExpenses[periodId].filter(e => e.id !== expId);
+                saveData();
+            }
         }
 
         function updateMonthSummary() {
@@ -877,31 +1000,37 @@
 
                     html += `</div></div><div>
                             <div class="flex justify-between items-center text-xs text-theme-muted mb-1 font-semibold">
-                                <span>Recurring Expenses</span>
-                                <span class="text-[10px] text-theme-muted italic">Rolling across all months</span>
+                                <span>Budget Expenses</span>
+                                <button onclick="openAddManualExpenseModal('${period.id}')" class="text-theme-primary">+ Add Expense</button>
                             </div>
                             <div class="space-y-1.5">
                     `;
 
                     if (periodExpenses.length === 0) {
-                        html += `<p class="text-xs text-theme-muted italic">No rolling expenses linked to this period.</p>`;
+                        html += `<p class="text-xs text-theme-muted italic">No expenses linked to this period.</p>`;
                     }
 
                     periodExpenses.forEach(exp => {
+                        let isLoanParam = exp.isLoan ? `'${exp.loanId}'` : 'null';
+                        let isManualParam = exp.isManual ? 'true' : 'false';
+
                         html += `
                             <div class="flex justify-between items-center text-xs bg-theme-bg px-2.5 py-2 rounded-lg border border-theme-border ${exp.isPaid ? 'opacity-60 bg-emerald-50/50' : ''}">
-                                <div class="flex items-center space-x-2">
-                                    <button onclick="toggleExpensePaid('${exp.id}')" class="text-base ${exp.isPaid ? 'text-emerald-600' : 'text-theme-muted'}">
+                                <div class="flex items-center space-x-2 w-3/5">
+                                    <button onclick="toggleExpensePaid('${exp.id}')" class="text-base flex-shrink-0 ${exp.isPaid ? 'text-emerald-600' : 'text-theme-muted'}">
                                         <i class="fa-regular ${exp.isPaid ? 'fa-square-check' : 'fa-square'}"></i>
                                     </button>
-                                    <div>
-                                        <span class="font-medium ${exp.isPaid ? 'line-through' : ''}">${exp.title}</span>
+                                    <div class="truncate">
+                                        <span class="font-medium block truncate ${exp.isPaid ? 'line-through' : ''}">${exp.title}</span>
                                         <span class="block text-[10px] text-theme-muted">${exp.category || 'General'}</span>
                                     </div>
                                 </div>
-                                <div class="flex items-center space-x-2">
-                                    <span class="font-semibold text-rose-600">${formatPHP(exp.amount)}</span>
-                                    <button onclick="hideRecurringForMonth('${exp.id}')" title="Delete for this month only" class="text-rose-400 hover:text-rose-600 ml-2"><i class="fa-solid fa-trash"></i></button>
+                                <div class="flex items-center space-x-1 w-2/5 justify-end">
+                                    <div class="flex items-center">
+                                        <span class="text-rose-600 font-semibold mr-0.5">₱</span>
+                                        <input type="number" value="${exp.amount}" step="0.01" onchange="updateExpenseAmount('${exp.id}', this.value, ${isLoanParam}, ${isManualParam}, '${exp.periodId}')" class="w-16 bg-transparent text-right font-semibold text-rose-600 focus:outline-none border-b border-transparent focus:border-rose-300 py-0.5">
+                                    </div>
+                                    <button onclick="${exp.isLoan ? `deleteLoanPayment('${exp.loanId}', '${exp.id}')` : (exp.isManual ? `deleteManualExpense('${exp.periodId}', '${exp.id}')` : `hideRecurringForMonth('${exp.id}')`)}" title="${exp.isLoan ? 'Delete Payment' : (exp.isManual ? 'Delete Expense' : 'Delete for this month only')}" class="text-rose-400 hover:text-rose-600 flex-shrink-0 ml-1"><i class="fa-solid fa-trash"></i></button>
                                 </div>
                             </div>
                         `;
@@ -917,12 +1046,23 @@
 
         function populateCategoryDropdowns() {
             let select = document.getElementById('expenseCategory');
+            let manualSelect = document.getElementById('manualExpenseCategory');
+            
             select.innerHTML = '';
+            if (manualSelect) manualSelect.innerHTML = '';
+            
             appData.settings.customCategories.forEach(cat => {
                 let opt = document.createElement('option');
                 opt.value = cat;
                 opt.innerText = cat;
                 select.appendChild(opt);
+
+                if (manualSelect) {
+                    let opt2 = document.createElement('option');
+                    opt2.value = cat;
+                    opt2.innerText = cat;
+                    manualSelect.appendChild(opt2);
+                }
             });
         }
 
@@ -1069,6 +1209,41 @@
             }
         }
 
+        function openAddManualExpenseModal(periodId) {
+            document.getElementById('targetManualExpensePeriodId').value = periodId;
+            document.getElementById('manualExpenseTitle').value = '';
+            document.getElementById('manualExpenseCategory').selectedIndex = 0;
+            document.getElementById('manualExpenseAmount').value = '';
+            document.getElementById('addManualExpenseModal').classList.remove('hidden');
+        }
+
+        function closeAddManualExpenseModal() { 
+            document.getElementById('addManualExpenseModal').classList.add('hidden'); 
+        }
+
+        function saveManualExpense() {
+            let periodId = document.getElementById('targetManualExpensePeriodId').value;
+            let title = document.getElementById('manualExpenseTitle').value;
+            let category = document.getElementById('manualExpenseCategory').value;
+            let amount = Number(document.getElementById('manualExpenseAmount').value);
+            
+            if (!title || !amount) return;
+            
+            let mData = appData.monthsData[currentMonth];
+            if (!mData.manualExpenses) mData.manualExpenses = {};
+            if (!mData.manualExpenses[periodId]) mData.manualExpenses[periodId] = [];
+            
+            mData.manualExpenses[periodId].push({
+                id: 'man_' + Date.now() + Math.random().toString(36).substr(2, 5),
+                title, 
+                category, 
+                amount
+            });
+            
+            closeAddManualExpenseModal();
+            saveData();
+        }
+
         function openExpenseModal(periodId, recurringId = null) {
             document.getElementById('targetExpensePeriodId').value = periodId;
             document.getElementById('editExpenseId').value = recurringId || '';
@@ -1136,9 +1311,9 @@
             }
         }
 
-        function toggleExpensePaid(recurringId) {
+        function toggleExpensePaid(expenseId) {
             let mData = getActiveMonthData();
-            mData.paidStatus[recurringId] = !mData.paidStatus[recurringId];
+            mData.paidStatus[expenseId] = !mData.paidStatus[expenseId];
             saveData();
         }
 
@@ -1197,7 +1372,7 @@
                 dueDate,
                 monthlyAmountDue,
                 entries: [
-                    { type: 'due', date: dueDate || new Date().toISOString().split('T')[0], amount: overdueAmount, title: 'Initial Overdue' }
+                    { id: 'entry_' + Date.now(), type: 'due', date: dueDate || new Date().toISOString().split('T')[0], amount: overdueAmount, title: 'Initial Overdue' }
                 ]
             });
             closeAddLoanModal();
@@ -1228,7 +1403,7 @@
             container.innerHTML = '';
 
             if (!loan.entries) {
-                loan.entries = [{ type: 'due', date: loan.dueDate || new Date().toISOString().split('T')[0], amount: loan.overdueAmount, title: 'Initial Overdue' }];
+                loan.entries = [{ id: 'entry_' + Date.now(), type: 'due', date: loan.dueDate || new Date().toISOString().split('T')[0], amount: loan.overdueAmount, title: 'Initial Overdue' }];
             }
 
             loan.entries.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -1299,7 +1474,7 @@
 
             let loan = appData.loans.find(l => l.id === currentActiveLoanId);
             if (loan) {
-                loan.entries.push({ type: 'due', title, amount, date });
+                loan.entries.push({ id: 'entry_' + Date.now(), type: 'due', title, amount, date });
                 closeLedgerAddDueModal();
                 saveData();
                 renderLedgerEntries(loan);
@@ -1334,13 +1509,21 @@
             let loan = appData.loans.find(l => l.id === currentActiveLoanId);
 
             if (loan && chosenPeriod) {
+                let entryId = 'entry_' + Date.now() + Math.random().toString(36).substr(2, 5);
                 loan.entries.push({
+                    id: entryId,
                     type: 'payment',
                     amount,
                     date,
                     periodId: chosenPeriod.id,
                     periodName: chosenPeriod.name
                 });
+
+                // Mark the ledger payment as paid natively inside the current month automatically
+                let month = date.substring(0, 7);
+                if (!appData.monthsData[month]) appData.monthsData[month] = { incomes: {}, hiddenRecurring: [], paidStatus: {} };
+                if (!appData.monthsData[month].paidStatus) appData.monthsData[month].paidStatus = {};
+                appData.monthsData[month].paidStatus[entryId] = true;
 
                 closeLedgerAddPaymentModal();
                 saveData();
