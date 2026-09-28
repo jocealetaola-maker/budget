@@ -216,7 +216,7 @@
                 <div class="flex justify-between items-center">
                     <div>
                         <h2 class="font-bold text-base">Period Expenses</h2>
-                        <p class="text-xs text-theme-muted">Add entries directly to specific periods</p>
+                        <p class="text-xs text-theme-muted">Automated recurring bills across all months</p>
                     </div>
                 </div>
                 <div id="recurringColumnsContainer" class="space-y-4"></div>
@@ -535,6 +535,7 @@
         let appData = {
             theme: 'lilac',
             monthsData: {}, // Keyed by YYYY-MM: { expenses: [], incomes: {} }
+            recurringExpenses: [], // Global recurring period expenses template
             loans: [],
             notes: [],
             settings: { 
@@ -624,6 +625,26 @@
                 try { appData = JSON.parse(saved); } catch(e) {}
             }
             if (!appData.monthsData) appData.monthsData = {};
+            if (!appData.recurringExpenses) {
+                // Migration fallback for legacy user data if any month expenses exist
+                appData.recurringExpenses = [];
+                Object.keys(appData.monthsData).forEach(mKey => {
+                    let m = appData.monthsData[mKey];
+                    if (m.expenses) {
+                        m.expenses.forEach(ex => {
+                            if (!appData.recurringExpenses.some(re => re.title === ex.title && re.periodId === ex.periodId)) {
+                                appData.recurringExpenses.push({
+                                    id: ex.id || Date.now().toString() + Math.random(),
+                                    title: ex.title,
+                                    category: ex.category,
+                                    amount: ex.amount,
+                                    periodId: ex.periodId
+                                });
+                            }
+                        });
+                    }
+                });
+            }
             if (!appData.settings.customPeriodNames) {
                 appData.settings.customPeriodNames = {
                     'Monthly': ['Full Month'],
@@ -723,7 +744,34 @@
             if (!appData.monthsData[currentMonth]) {
                 appData.monthsData[currentMonth] = { expenses: [], incomes: {} };
             }
-            return appData.monthsData[currentMonth];
+            let mData = appData.monthsData[currentMonth];
+            if (!mData.expenses) mData.expenses = [];
+
+            // Automatically sync global recurring expenses into this month view while preserving month-specific 'isPaid' status
+            if (appData.recurringExpenses && appData.recurringExpenses.length > 0) {
+                appData.recurringExpenses.forEach(rec => {
+                    let existing = mData.expenses.find(e => e.recurringId === rec.id || e.id === rec.id);
+                    if (!existing) {
+                        mData.expenses.push({
+                            id: rec.id,
+                            recurringId: rec.id,
+                            title: rec.title,
+                            category: rec.category,
+                            amount: rec.amount,
+                            periodId: rec.periodId,
+                            isPaid: false
+                        });
+                    } else {
+                        // Keep properties up to date with template
+                        existing.title = rec.title;
+                        existing.category = rec.category;
+                        existing.amount = rec.amount;
+                        existing.periodId = rec.periodId;
+                        if (!existing.recurringId) existing.recurringId = rec.id;
+                    }
+                });
+            }
+            return mData;
         }
 
         function updateMonthSummary() {
@@ -833,7 +881,7 @@
                     `;
 
                     if (periodExpenses.length === 0) {
-                        html += `<p class="text-xs text-theme-muted italic">No expenses linked to this period.</p>`;
+                        html += `<p class="text-xs text-theme-muted italic">No recurring expenses linked to this period.</p>`;
                     }
 
                     periodExpenses.forEach(exp => {
@@ -932,7 +980,7 @@
                 `;
 
                 if (periodExpenses.length === 0) {
-                    html += `<p class="text-xs text-theme-muted italic">No entries for ${period.name}.</p>`;
+                    html += `<p class="text-xs text-theme-muted italic">No automated entries for ${period.name}.</p>`;
                 }
 
                 periodExpenses.forEach(exp => {
@@ -1029,15 +1077,15 @@
             
             if (expenseId) {
                 let mData = getActiveMonthData();
-                let exp = mData.expenses.find(e => e.id === expenseId);
+                let exp = mData.expenses.find(e => e.id === expenseId || e.recurringId === expenseId);
                 if (exp) {
-                    document.getElementById('expenseModalTitle').innerText = 'Edit Expense / Bill';
+                    document.getElementById('expenseModalTitle').innerText = 'Edit Recurring Expense';
                     document.getElementById('expenseTitle').value = exp.title;
                     document.getElementById('expenseCategory').value = exp.category;
                     document.getElementById('expenseAmount').value = exp.amount;
                 }
             } else {
-                document.getElementById('expenseModalTitle').innerText = 'Add Expense / Bill';
+                document.getElementById('expenseModalTitle').innerText = 'Add Recurring Expense';
                 document.getElementById('expenseTitle').value = '';
                 document.getElementById('expenseCategory').selectedIndex = 0;
                 document.getElementById('expenseAmount').value = '';
@@ -1057,17 +1105,27 @@
 
             if (!title || !amount || !periodId) return;
 
-            let mData = getActiveMonthData();
-            
             if (editId) {
-                let exp = mData.expenses.find(e => e.id === editId);
-                if (exp) {
-                    exp.title = title;
-                    exp.category = category;
-                    exp.amount = amount;
+                // Edit existing recurring template
+                let rec = appData.recurringExpenses.find(r => r.id === editId);
+                if (rec) {
+                    rec.title = title;
+                    rec.category = category;
+                    rec.amount = amount;
+                    rec.periodId = periodId;
+                } else {
+                    // Fallback if editing legacy instance
+                    appData.recurringExpenses.push({
+                        id: Date.now().toString(),
+                        title, category, amount, periodId
+                    });
                 }
             } else {
-                mData.expenses.push({ id: Date.now().toString(), title, category, amount, periodId, isPaid: false });
+                // Add new global recurring template
+                appData.recurringExpenses.push({
+                    id: Date.now().toString(),
+                    title, category, amount, periodId
+                });
             }
 
             closeExpenseModal();
@@ -1076,9 +1134,17 @@
 
         function deleteExpense(id) {
             let mData = getActiveMonthData();
-            mData.expenses = mData.expenses.filter(e => e.id !== id);
+            let exp = mData.expenses.find(e => e.id === id || e.recurringId === id);
+            let recId = exp ? (exp.recurringId || exp.id) : id;
+
+            // Remove from global recurring template list so it stops carrying over
+            appData.recurringExpenses = appData.recurringExpenses.filter(r => r.id !== recId);
+            // Also remove from current month view
+            mData.expenses = mData.expenses.filter(e => e.id !== id && e.recurringId !== id);
+            
             saveData();
         }
+
         function toggleExpensePaid(id) {
             let mData = getActiveMonthData();
             let exp = mData.expenses.find(e => e.id === id);
@@ -1296,7 +1362,7 @@
                 mData.expenses.push({
                     id: Date.now().toString(),
                     title: `Loan Payment: ${loan.lender}`,
-                    category: 'Bills & Utilities', // Automatically grouped to standard category
+                    category: 'Bills & Utilities',
                     amount,
                     periodId: chosenPeriod.id,
                     isPaid: false
