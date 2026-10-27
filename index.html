@@ -36,6 +36,7 @@
             }
         }
     </script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700;800&display=swap">
     <style>
         /* Pastel Theme Definitions */
         :root.theme-lilac {
@@ -92,16 +93,28 @@
             -webkit-appearance: none; 
             margin: 0; 
         }
+    
+        body { font-family: 'Nunito', ui-sans-serif, system-ui, sans-serif; }
+        .font-display { font-family: 'Fredoka', 'Nunito', sans-serif; }
+        .sukli-bob { animation: sukliBob 2.8s ease-in-out infinite; }
+        .sukli-hop { animation: sukliHop .55s ease-out; }
+        .sukli-pop { animation: sukliPop .3s ease-out; }
+        .sukli-breathe { animation: sukliBreathe 3.6s ease-in-out infinite; transform-origin: 50% 100%; }
+        @keyframes sukliBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        @keyframes sukliHop { 0% { transform: translateY(0) scale(1); } 35% { transform: translateY(-18px) scale(.94,1.06); } 70% { transform: translateY(0) scale(1.07,.93); } 100% { transform: translateY(0) scale(1); } }
+        @keyframes sukliPop { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes sukliBreathe { 0%,100% { transform: scale(1,1); } 50% { transform: scale(1.03,.97); } }
+        @media (prefers-reduced-motion: reduce) { .sukli-bob, .sukli-hop, .sukli-pop, .sukli-breathe { animation: none; } }
     </style>
 </head>
-<body class="bg-theme-bg text-theme-text min-h-screen font-sans transition-colors duration-300 pb-24">
+<body class="bg-theme-bg text-theme-text min-h-screen transition-colors duration-300 pb-24">
 
     <!-- AUTHENTICATION OVERLAY -->
-    <div id="authOverlay" class="fixed inset-0 z-50 bg-theme-bg flex items-center justify-center p-4">
-        <div class="bg-theme-card border border-theme-border w-full max-w-sm rounded-3xl p-6 shadow-xl space-y-4">
+    <div id="authOverlay" class="fixed inset-0 z-50 bg-theme-bg flex flex-col items-center justify-center p-4">
+        <div id="sukli-auth" class="relative z-10 -mb-6 w-full max-w-sm flex flex-col items-center gap-2"></div>
+        <div class="bg-theme-card border border-theme-border w-full max-w-sm rounded-3xl p-6 pt-9 shadow-xl space-y-4">
             <div class="text-center space-y-1">
-                <svg class="w-14 h-14 mx-auto" viewBox="0 0 120 120" aria-hidden="true"><rect width="120" height="120" rx="28" fill="#2d2440"/><path d="M58 24 A36 36 0 0 0 58 96 Z" fill="#e9c46a"/><path d="M62 24 A36 36 0 0 1 62 96 Z" fill="none" stroke="#e9c46a" stroke-width="5"/></svg>
-                <h1 class="font-bold text-lg">Welcome to Muni</h1>
+                <h1 class="font-display font-semibold text-2xl">Welcome to Muni</h1>
                 <p class="text-[10px] uppercase tracking-widest text-theme-muted">by buhat</p>
                 <p id="authSubtitle" class="text-xs text-theme-muted">Sign in with your username or email & PIN</p>
             </div>
@@ -164,6 +177,9 @@
                 </button>
             </div>
 
+            <div id="sukli-budget"></div>
+            <div id="budgetEmptyState" class="hidden"></div>
+
             <div class="bg-theme-card border border-theme-border rounded-2xl p-4 shadow-sm">
                 <h2 class="text-xs font-semibold uppercase tracking-wider text-theme-muted mb-2">Month Financial Summary (₱ PHP)</h2>
                 <div class="grid grid-cols-2 gap-3 mb-3">
@@ -192,6 +208,35 @@
             <div id="loanStatusCard" class="bg-theme-card border border-theme-border rounded-2xl p-4 shadow-sm space-y-2 hidden"></div>
         </section>
 
+        <!-- TAB: Savings Goals -->
+        <section id="tab-savings" class="space-y-4 tab-content hidden">
+            <div id="sukli-savings"></div>
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="font-display font-semibold text-xl">Savings Goals</h2>
+                    <p class="text-xs text-theme-muted">Each goal shows in Budget as a monthly bill</p>
+                </div>
+                <button onclick="openGoalModal()" class="text-xs bg-theme-primary text-white px-3 py-1.5 rounded-lg font-medium">+ New Goal</button>
+            </div>
+            <div id="savingsSummary" class="grid grid-cols-2 gap-3"></div>
+            <div id="goalsListContainer" class="space-y-3"></div>
+        </section>
+
+        <!-- TAB: Loans -->
+        <section id="tab-loans" class="space-y-4 tab-content hidden">
+            <div id="sukli-loans"></div>
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="font-bold text-base">Loans & Lenders</h2>
+                        <p class="text-xs text-theme-muted">Planned payments flow into Budget until paid off</p>
+                    </div>
+                    <button onclick="openLoanModal()" class="text-xs bg-theme-primary text-white px-3 py-1.5 rounded-lg font-medium">
+                        + Add Loan
+                    </button>
+                </div>
+                <div id="loansListContainer" class="space-y-3"></div>
+        </section>
+
         <!-- TAB 2: Summary & Highest Expenses Analysis -->
         <section id="tab-summary" class="space-y-4 tab-content hidden">
             <div class="bg-theme-card border border-theme-border rounded-2xl p-4 shadow-sm space-y-4">
@@ -207,11 +252,15 @@
         </section>
 
         <!-- TAB 3: Recurring Payments & Loans -->
-        <section id="tab-recurring" class="space-y-4 tab-content hidden">
+        <section id="tab-more" class="tab-content hidden">
             <div class="flex bg-theme-card border border-theme-border rounded-xl p-1">
-                <button onclick="switchRecurringSubTab('bills')" id="subnav-bills" class="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-theme-primary text-white transition">Recurring Expenses</button>
-                <button onclick="switchRecurringSubTab('loans')" id="subnav-loans" class="flex-1 py-1.5 rounded-lg text-xs font-semibold text-theme-muted hover:text-theme-primary transition">Loans & Ledger</button>
+                <button onclick="switchMoreTab('recurring')" id="morenav-recurring" class="flex-1 py-1.5 rounded-lg text-xs font-semibold transition bg-theme-primary text-white">Recurring</button>
+                <button onclick="switchMoreTab('timecost')" id="morenav-timecost" class="flex-1 py-1.5 rounded-lg text-xs font-semibold transition text-theme-muted hover:text-theme-primary">Time Cost</button>
+                <button onclick="switchMoreTab('settings')" id="morenav-settings" class="flex-1 py-1.5 rounded-lg text-xs font-semibold transition text-theme-muted hover:text-theme-primary">Settings</button>
             </div>
+        </section>
+
+        <section id="more-recurring" class="space-y-4 tab-content hidden">
 
             <div id="subtab-bills" class="space-y-3">
                 <div class="flex justify-between items-center">
@@ -222,23 +271,10 @@
                 </div>
                 <div id="recurringColumnsContainer" class="space-y-4"></div>
             </div>
-
-            <div id="subtab-loans" class="space-y-3 hidden">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h2 class="font-bold text-base">Loans & Lenders</h2>
-                        <p class="text-xs text-theme-muted">Planned payments flow into Budget until paid off</p>
-                    </div>
-                    <button onclick="openLoanModal()" class="text-xs bg-theme-primary text-white px-3 py-1.5 rounded-lg font-medium">
-                        + Add Loan
-                    </button>
-                </div>
-                <div id="loansListContainer" class="space-y-3"></div>
-            </div>
         </section>
 
         <!-- TAB 4: Time Cost Calculator -->
-        <section id="tab-timecost" class="space-y-4 tab-content hidden">
+        <section id="more-timecost" class="space-y-4 tab-content hidden">
             <div class="bg-theme-card border border-theme-border rounded-2xl p-4 shadow-sm space-y-3">
                 <h2 class="font-bold text-base">Time Cost Calculator</h2>
                 <p class="text-xs text-theme-muted">Calculate work hours/days an expense costs based on foreign earnings converted to PHP.</p>
@@ -267,7 +303,7 @@
         </section>
 
         <!-- TAB 5: Settings -->
-        <section id="tab-settings" class="space-y-4 tab-content hidden">
+        <section id="more-settings" class="space-y-4 tab-content hidden">
             <div class="bg-theme-card border border-theme-border rounded-2xl p-4 shadow-sm space-y-4">
                 <h2 class="font-bold text-base">App Settings</h2>
                 
@@ -340,25 +376,25 @@
 
     <!-- Bottom Navigation Bar -->
     <nav class="fixed bottom-0 left-0 right-0 bg-theme-card/95 backdrop-blur border-t border-theme-border py-2 px-3 z-30 max-w-md mx-auto flex justify-around">
-        <button onclick="switchTab('budget')" id="nav-budget" class="flex flex-col items-center space-y-1 text-theme-primary">
+        <button onclick="switchTab('budget')" id="nav-budget" class="flex flex-col items-center space-y-1 min-w-[56px] text-theme-primary">
             <i class="fa-solid fa-calendar-days text-base"></i>
-            <span class="text-[10px] font-medium">Budget</span>
+            <span class="text-[10px] font-semibold">Budget</span>
         </button>
-        <button onclick="switchTab('summary')" id="nav-summary" class="flex flex-col items-center space-y-1 text-theme-muted hover:text-theme-primary">
+        <button onclick="switchTab('savings')" id="nav-savings" class="flex flex-col items-center space-y-1 min-w-[56px] text-theme-muted hover:text-theme-primary">
+            <i class="fa-solid fa-piggy-bank text-base"></i>
+            <span class="text-[10px] font-semibold">Savings</span>
+        </button>
+        <button onclick="switchTab('loans')" id="nav-loans" class="flex flex-col items-center space-y-1 min-w-[56px] text-theme-muted hover:text-theme-primary">
+            <i class="fa-solid fa-file-invoice-dollar text-base"></i>
+            <span class="text-[10px] font-semibold">Loans</span>
+        </button>
+        <button onclick="switchTab('summary')" id="nav-summary" class="flex flex-col items-center space-y-1 min-w-[56px] text-theme-muted hover:text-theme-primary">
             <i class="fa-solid fa-chart-pie text-base"></i>
-            <span class="text-[10px] font-medium">Summary</span>
+            <span class="text-[10px] font-semibold">Summary</span>
         </button>
-        <button onclick="switchTab('recurring')" id="nav-recurring" class="flex flex-col items-center space-y-1 text-theme-muted hover:text-theme-primary">
-            <i class="fa-solid fa-repeat text-base"></i>
-            <span class="text-[10px] font-medium">Recurring</span>
-        </button>
-        <button onclick="switchTab('timecost')" id="nav-timecost" class="flex flex-col items-center space-y-1 text-theme-muted hover:text-theme-primary">
-            <i class="fa-solid fa-clock-rotate-left text-base"></i>
-            <span class="text-[10px] font-medium">Time Cost</span>
-        </button>
-        <button onclick="switchTab('settings')" id="nav-settings" class="flex flex-col items-center space-y-1 text-theme-muted hover:text-theme-primary">
-            <i class="fa-solid fa-gear text-base"></i>
-            <span class="text-[10px] font-medium">Settings</span>
+        <button onclick="switchTab('more')" id="nav-more" class="flex flex-col items-center space-y-1 min-w-[56px] text-theme-muted hover:text-theme-primary">
+            <i class="fa-solid fa-ellipsis text-base"></i>
+            <span class="text-[10px] font-semibold">More</span>
         </button>
     </nav>
 
@@ -544,6 +580,62 @@
         </div>
     </div>
 
+    <!-- Savings goal add / edit -->
+    <div id="goalModal" class="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-theme-card w-full max-w-sm rounded-2xl p-4 shadow-xl border border-theme-border space-y-3 max-h-[90vh] overflow-y-auto">
+            <h3 id="goalModalTitle" class="font-bold text-base">New Savings Goal</h3>
+            <input type="hidden" id="editGoalId">
+            <div>
+                <label for="goalName" class="block text-xs text-theme-muted mb-1">Goal Name</label>
+                <input type="text" id="goalName" placeholder="e.g. Emergency fund" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label for="goalTarget" class="block text-xs text-theme-muted mb-1">Target (₱)</label>
+                    <input type="number" id="goalTarget" placeholder="50000" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label for="goalTargetMonth" class="block text-xs text-theme-muted mb-1">Reach It By</label>
+                    <input type="month" id="goalTargetMonth" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+                </div>
+            </div>
+            <div>
+                <label for="goalOpening" class="block text-xs text-theme-muted mb-1">Already Saved (₱)</label>
+                <input type="number" id="goalOpening" placeholder="0.00" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label for="goalPeriodSelect" class="block text-xs text-theme-muted mb-1">Show in Budget Pay Period</label>
+                <select id="goalPeriodSelect" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm"></select>
+            </div>
+            <p class="text-[10px] text-theme-muted">Miss or underpay a month and the shortfall is spread over the months left, so you still hit the date.</p>
+            <div class="flex space-x-2 pt-2">
+                <button onclick="closeGoalModal()" class="flex-1 bg-theme-bg py-2 rounded-xl text-xs font-medium border border-theme-border">Cancel</button>
+                <button onclick="saveGoal()" class="flex-1 bg-theme-primary text-white py-2 rounded-xl text-xs font-medium">Save Goal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add money to a goal -->
+    <div id="goalMoneyModal" class="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-theme-card w-full max-w-sm rounded-2xl p-4 shadow-xl border border-theme-border space-y-3">
+            <h3 id="goalMoneyTitle" class="font-bold text-base">Add to Goal</h3>
+            <input type="hidden" id="moneyGoalId">
+            <div>
+                <label for="goalMoneyAmount" class="block text-xs text-theme-muted mb-1">Amount (₱ PHP)</label>
+                <input type="number" id="goalMoneyAmount" placeholder="0.00" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label for="goalMoneyDate" class="block text-xs text-theme-muted mb-1">Date</label>
+                <input type="date" id="goalMoneyDate" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+                <p class="text-[10px] text-theme-muted mt-1">Counts as that month's savings in Budget.</p>
+            </div>
+            <div class="flex space-x-2 pt-2">
+                <button onclick="closeGoalMoneyModal()" class="flex-1 bg-theme-bg py-2 rounded-xl text-xs font-medium border border-theme-border">Cancel</button>
+                <button onclick="saveGoalMoney()" class="flex-1 bg-theme-primary text-white py-2 rounded-xl text-xs font-medium">Add Money</button>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript Application Logic -->
     <script>
         const SUPABASE_URL = "https://burvheyxcjgrotqjmmbl.supabase.co";
@@ -583,7 +675,11 @@
         let currentActiveLoanId = null;
 
         let uiState = {
-            collapsedPeriods: {}
+            collapsedPeriods: {},
+            activeTab: 'budget',
+            moreTab: 'recurring',
+            sukli: {},
+            quip: 0
         };
 
         // Clean default application state structure
@@ -594,6 +690,7 @@
                 recurringExpenses: [],
                 loans: [],
                 notes: [],
+                savingsGoals: [],
                 settings: { 
                     earnedCurrency: 'GBP', 
                     hourlyRate: 15, 
@@ -619,6 +716,7 @@
             } catch(e) {
                 document.getElementById('syncStatusIndicator').innerText = "Offline Mode";
             }
+            renderSukli('auth');
 
             const savedUser = localStorage.getItem('lifehub_current_user');
             if (savedUser) {
@@ -718,6 +816,7 @@
             if (!appData.recurringExpenses) appData.recurringExpenses = [];
             if (!appData.loans) appData.loans = [];
             if (!appData.notes) appData.notes = [];
+            if (!appData.savingsGoals) appData.savingsGoals = [];
             if (!appData.settings) appData.settings = getDefaultAppData().settings;
 
             // Upgrade older loan records to the new total-amount model
@@ -770,27 +869,35 @@
             if (save) saveData();
         }
 
+        const MAIN_TABS = ['budget', 'savings', 'loans', 'summary', 'more'];
+        const NAV_ON = 'flex flex-col items-center space-y-1 min-w-[56px] text-theme-primary';
+        const NAV_OFF = 'flex flex-col items-center space-y-1 min-w-[56px] text-theme-muted hover:text-theme-primary';
+        const PILL_ON = 'flex-1 py-1.5 rounded-lg text-xs font-semibold transition bg-theme-primary text-white';
+        const PILL_OFF = 'flex-1 py-1.5 rounded-lg text-xs font-semibold transition text-theme-muted hover:text-theme-primary';
+
         function switchTab(tabId) {
-            ['budget', 'summary', 'recurring', 'timecost', 'settings'].forEach(t => {
-                document.getElementById(`tab-${t}`).classList.add('hidden');
-                document.getElementById(`nav-${t}`).className = 'flex flex-col items-center space-y-1 text-theme-muted hover:text-theme-primary';
-            });
-            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-            document.getElementById(`nav-${tabId}`).className = 'flex flex-col items-center space-y-1 text-theme-primary';
+            uiState.activeTab = tabId;
+            document.querySelectorAll('.tab-content').forEach(sec => sec.classList.add('hidden'));
+            MAIN_TABS.forEach(t => { document.getElementById(`nav-${t}`).className = t === tabId ? NAV_ON : NAV_OFF; });
+            if (tabId === 'more') {
+                document.getElementById('tab-more').classList.remove('hidden');
+                document.getElementById(`more-${uiState.moreTab}`).classList.remove('hidden');
+                ['recurring', 'timecost', 'settings'].forEach(t => { document.getElementById(`morenav-${t}`).className = t === uiState.moreTab ? PILL_ON : PILL_OFF; });
+                if (uiState.moreTab === 'recurring') renderRecurringColumns();
+                if (uiState.moreTab === 'settings') renderCategorySettings();
+            } else {
+                document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            }
             if (tabId === 'summary') renderSummaryTab();
-            if (tabId === 'recurring') renderRecurringColumns();
-            if (tabId === 'settings') renderCategorySettings();
+            if (tabId === 'savings') renderSavings();
+            if (tabId === 'loans') renderLoans();
+            renderSuklis();
+            window.scrollTo(0, 0);
         }
 
-        function switchRecurringSubTab(subTabId) {
-            ['bills', 'loans'].forEach(st => {
-                document.getElementById(`subtab-${st}`).classList.add('hidden');
-                document.getElementById(`subnav-${st}`).className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold text-theme-muted hover:text-theme-primary transition';
-            });
-            document.getElementById(`subtab-${subTabId}`).classList.remove('hidden');
-            document.getElementById(`subnav-${subTabId}`).className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold bg-theme-primary text-white transition';
-            if (subTabId === 'bills') renderRecurringColumns();
-            if (subTabId === 'loans') renderLoans();
+        function switchMoreTab(subTab) {
+            uiState.moreTab = subTab;
+            switchTab('more');
         }
 
         function renderAll() {
@@ -799,7 +906,10 @@
             renderRecurringColumns();
             renderLoans();
             renderNotesList();
+            renderSavings();
             updateMonthSummary();
+            renderBudgetEmptyState();
+            renderSuklis();
             if (currentActiveLoanId) {
                 let loan = appData.loans.find(l => l.id === currentActiveLoanId);
                 if (loan) renderLedgerEntries(loan);
@@ -1028,6 +1138,26 @@
                 });
             });
 
+            // Planned savings contributions for this month
+            (appData.savingsGoals || []).forEach(goal => {
+                let p = getGoalPlan(goal).months[currentMonth];
+                if (!p) return;
+                computedExpenses.push({
+                    id: `sav_${goal.id}`,
+                    kind: 'saving',
+                    loanId: goal.id,
+                    title: `[Savings] ${goal.name}`,
+                    category: 'Savings',
+                    amount: p.amount,
+                    periodId: resolvePeriodId(goal.periodId || 'period_0'),
+                    isPaid: p.isPaid,
+                    isOverride: p.isOverride,
+                    payCount: p.count,
+                    isFinal: p.isFinal,
+                    goalSub: `Goal ${pesoShort(goal.target)} by ${fmtMonth(goal.targetMonth)}`
+                });
+            });
+
             mData.expenses = computedExpenses;
             return mData;
         }
@@ -1035,6 +1165,7 @@
         // ---------- Budget row actions ----------
         function onBudgetAmountChange(kind, id, periodId, value, loanId) {
             let amt = round2(value);
+            if (kind === 'saving') { editSavingAmount(loanId, amt); return; }
             let mData = getActiveMonthData();
             if (kind === 'recurring') {
                 mData.recurringOverrides[id] = amt;   // this month only
@@ -1064,6 +1195,9 @@
             if (kind === 'recurring') {
                 let mData = getActiveMonthData();
                 delete mData.recurringOverrides[id];
+            } else if (kind === 'saving') {
+                let g = findGoal(loanId);
+                if (g && g.plannedOverrides) delete g.plannedOverrides[currentMonth];
             } else if (kind === 'loan') {
                 let loan = appData.loans.find(l => l.id === loanId);
                 if (loan && loan.plannedOverrides) delete loan.plannedOverrides[currentMonth];
@@ -1072,6 +1206,7 @@
         }
 
         function toggleBudgetPaid(kind, id, loanId) {
+            if (kind === 'saving') { toggleSavingPaid(loanId); return; }
             if (kind === 'loan') {
                 let loan = appData.loans.find(l => l.id === loanId);
                 if (!loan) return;
@@ -1082,12 +1217,20 @@
                         : `Untick will remove this payment from the ledger. Continue?`;
                     if (!confirm(msg)) return;
                     loan.entries = loan.entries.filter(e => !(e.type === 'payment' && e.planMonth === currentMonth));
+                    saveData();
+                    sukliSay('budget', 'Un-paid it? Bold strategy.');
+                    return;
                 } else {
                     let plan = getLoanPlan(loan).months[currentMonth];
                     let amt = plan ? plan.amount : Number(loan.monthlyDue || 0);
                     let today = todayISO();
                     let date = today.slice(0, 7) === currentMonth ? today : dueDateInMonth(loan, currentMonth);
+                    let beforeSt = getLoanStatus(loan);
                     loan.entries.push({ id: newId('pay'), type: 'payment', amount: amt, date, planMonth: currentMonth, source: 'budget' });
+                    let afterSt = getLoanStatus(loan);
+                    saveData();
+                    sukliLoanCheer(loan, beforeSt, afterSt);
+                    return;
                 }
                 saveData();
                 return;
@@ -1095,6 +1238,7 @@
             let mData = getActiveMonthData();
             mData.paidStatus[id] = !mData.paidStatus[id];
             saveData();
+            sukliSay('budget', mData.paidStatus[id] ? randomCheer() : 'Un-paid it? Bold strategy.', mData.paidStatus[id] ? 'party' : null);
         }
 
         function deleteManualExpense(periodId, expId) {
@@ -1222,6 +1366,9 @@
                                 ? `Paid${exp.payCount > 1 ? ` (${exp.payCount} payments)` : ''}${exp.isFinal ? ' · Final 🎉' : ''}`
                                 : `Due ${fmtDate(exp.dueDate)} · Planned${exp.isFinal ? ' · Final' : ''}`;
                         }
+                        if (exp.kind === 'saving') {
+                            sub = exp.isPaid ? `Saved${exp.payCount > 1 ? ` (${exp.payCount}x)` : ''}${exp.isFinal ? ' · Goal reached 🎉' : ''}` : `${esc(exp.goalSub)}${exp.isFinal ? ' · Final' : ''}`;
+                        }
                         let overrideTag = '';
                         if (exp.isOverride && !exp.isPaid) {
                             let hint = exp.kind === 'recurring' ? `usual ${formatPHP(exp.masterAmount)}` : 'edited';
@@ -1235,6 +1382,8 @@
                             delBtn = `<button onclick="deleteManualExpense('${exp.periodId}', '${exp.id}')" title="Delete expense" class="text-rose-400 hover:text-rose-600 flex-shrink-0 ml-1"><i class="fa-solid fa-trash"></i></button>`;
                         } else if (exp.kind === 'recurring') {
                             delBtn = `<button onclick="hideRecurringForMonth('${exp.id}')" title="Remove for this month only" class="text-rose-400 hover:text-rose-600 flex-shrink-0 ml-1"><i class="fa-solid fa-trash"></i></button>`;
+                        } else if (exp.kind === 'saving') {
+                            delBtn = `<button onclick="switchTab('savings')" title="Open savings goals" class="text-theme-primary flex-shrink-0 ml-1"><i class="fa-solid fa-piggy-bank"></i></button>`;
                         } else {
                             delBtn = `<button onclick="openLoanLedgerModal('${exp.loanId}')" title="Open loan ledger" class="text-theme-primary flex-shrink-0 ml-1"><i class="fa-solid fa-book"></i></button>`;
                         }
@@ -1476,6 +1625,7 @@
             mData.incomes[periodId].push({ title, amount });
             closeAddIncomeModal();
             saveData();
+            sukliSay('budget', "Payday! Let's give every peso a job.", 'party');
         }
         function deleteIncome(periodId, incomeIdx) {
             let mData = getActiveMonthData();
@@ -1517,6 +1667,7 @@
             
             closeAddManualExpenseModal();
             saveData();
+            sukliReactToSpend(title);
         }
 
         function openExpenseModal(periodId, recurringId = null) {
@@ -1859,6 +2010,427 @@
             loan.entries = loan.entries.filter(e => e.id !== entryId);
             saveData();
         }
+
+        // =====================================================================
+        // SAVINGS GOALS
+        // Goal: { id, name, target, targetMonth 'YYYY-MM', startMonth, openingSaved, periodId,
+        //         plannedOverrides: { 'YYYY-MM': amount }, contributions: [ {id, amount, date, planMonth} ] }
+        // Missed months are not counted as saved, so the shortfall spreads over the months left.
+        // =====================================================================
+
+        function monthDiff(a, b) {
+            let [ay, am] = a.split('-').map(Number);
+            let [by, bm] = b.split('-').map(Number);
+            return (by - ay) * 12 + (bm - am);
+        }
+        function ceil10(v) { return Math.ceil(v / 10) * 10; }
+        function findGoal(id) { return (appData.savingsGoals || []).find(g => g.id === id); }
+        function pesoShort(v) { return (v < 0 ? '-₱' : '₱') + Math.abs(Math.round(Number(v || 0))).toLocaleString('en-PH'); }
+
+        function getGoalPlan(goal) {
+            let months = {};
+            const target = Number(goal.target || 0);
+            const contribs = goal.contributions || [];
+            const nowYm = todayISO().slice(0, 7);
+            const startYm = goal.startMonth || nowYm;
+            const targetYm = goal.targetMonth || startYm;
+            const ov = goal.plannedOverrides || {};
+            let rem = target - Number(goal.openingSaved || 0) - sumAmt(contribs.filter(c => c.planMonth < startYm));
+            let ym = startYm, missed = 0;
+
+            for (let i = 0; i < 600; i++) {
+                const cs = contribs.filter(c => c.planMonth === ym);
+                const later = contribs.some(c => c.planMonth > ym);
+                if (cs.length) {
+                    const paid = sumAmt(cs);
+                    rem -= paid;
+                    months[ym] = { amount: round2(paid), isPaid: true, count: cs.length, isFinal: rem <= 0.005 };
+                } else if (rem > 0.005) {
+                    const monthsLeft = Math.max(1, monthDiff(ym, targetYm) + 1);
+                    const hasOv = ov[ym] !== undefined && ov[ym] !== null;
+                    const amt = hasOv ? Number(ov[ym]) : Math.min(rem, ceil10(rem / monthsLeft));
+                    const past = ym < nowYm;
+                    months[ym] = { amount: round2(amt), isPaid: false, isOverride: hasOv, count: 0, past, isFinal: false };
+                    if (past) {
+                        if (amt > 0) missed++;           // not saved: shortfall rolls forward
+                    } else {
+                        rem -= amt;                      // projected
+                        months[ym].isFinal = rem <= 0.005;
+                        if (!hasOv && amt <= 0) break;
+                    }
+                } else if (!later) {
+                    break;
+                }
+                ym = addMonths(ym, 1);
+            }
+            const saved = Number(goal.openingSaved || 0) + sumAmt(contribs);
+            return {
+                months,
+                saved: round2(saved),
+                remaining: round2(Math.max(0, target - saved)),
+                missed,
+                monthsLeft: Math.max(0, monthDiff(nowYm, targetYm) + 1)
+            };
+        }
+
+        function toggleSavingPaid(goalId) {
+            let g = findGoal(goalId);
+            if (!g) return;
+            if (!g.contributions) g.contributions = [];
+            let cs = g.contributions.filter(c => c.planMonth === currentMonth);
+            if (cs.length) {
+                if (!confirm(`Untick will remove the savings logged for ${fmtMonth(currentMonth)}. Continue?`)) return;
+                g.contributions = g.contributions.filter(c => c.planMonth !== currentMonth);
+                saveData();
+                sukliSay('budget', 'Un-saved it? Bold strategy.');
+                return;
+            }
+            let p = getGoalPlan(g).months[currentMonth];
+            let amt = p ? p.amount : 0;
+            if (!amt) return;
+            let today = todayISO();
+            let date = today.slice(0, 7) === currentMonth ? today : `${currentMonth}-01`;
+            g.contributions.push({ id: newId('sav'), amount: amt, date, planMonth: currentMonth, source: 'budget' });
+            saveData();
+            let after = getGoalPlan(g);
+            sukliSay('budget', after.remaining <= 0.005
+                ? `${g.name}: GOAL REACHED! I'd hug you but I'm mostly dust.`
+                : 'Saved! Future you says salamat.', 'party');
+        }
+
+        function editSavingAmount(goalId, amt) {
+            let g = findGoal(goalId);
+            if (!g) return;
+            if (!g.contributions) g.contributions = [];
+            let cs = g.contributions.filter(c => c.planMonth === currentMonth);
+            if (cs.length === 0) {
+                if (!g.plannedOverrides) g.plannedOverrides = {};
+                g.plannedOverrides[currentMonth] = amt;
+            } else if (cs.length === 1) {
+                cs[0].amount = amt;
+            } else {
+                alert('This month has more than one deposit logged. Edit them in Savings.');
+                renderAll();
+                return;
+            }
+            saveData();
+        }
+
+        function renderSavings() {
+            const list = document.getElementById('goalsListContainer');
+            const summary = document.getElementById('savingsSummary');
+            if (!list || !summary) return;
+            const goals = appData.savingsGoals || [];
+            const nowYm = todayISO().slice(0, 7);
+            let totalSaved = 0, monthTotal = 0;
+
+            if (goals.length === 0) {
+                list.innerHTML = `<div class="bg-theme-card border border-theme-border rounded-2xl p-6 text-center text-xs text-theme-muted">No goals yet. Tap "+ New Goal" to start one.</div>`;
+            } else {
+                list.innerHTML = goals.map(g => {
+                    const p = getGoalPlan(g);
+                    totalSaved += p.saved;
+                    const cur = p.months[nowYm];
+                    const per = cur ? cur.amount : 0;
+                    monthTotal += per;
+                    const done = p.remaining <= 0.005;
+                    const pct = g.target > 0 ? Math.min(100, Math.round((p.saved / g.target) * 100)) : 0;
+                    const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+                    const note = done ? 'Goal reached. Sukli is still celebrating.'
+                        : p.missed ? `Missed ${plural(p.missed, 'month')}, so I spread it over the next ${plural(Math.max(1, p.monthsLeft), 'month')}. No stress.`
+                        : p.monthsLeft > 0 ? `${plural(p.monthsLeft, 'month')} left · shows in Budget as a bill`
+                        : 'Past the target date, but keep going. Almost there!';
+                    const chip = done
+                        ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Done! 🎉</span>`
+                        : (cur ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-theme-accent text-theme-primary">${pesoShort(per)} this month${cur.isPaid ? ' ✓' : ''}</span>` : '');
+                    return `
+                        <div class="bg-theme-card border ${done ? 'border-emerald-200' : 'border-theme-border'} rounded-2xl p-4 shadow-sm space-y-2">
+                            <div class="flex justify-between items-start gap-2">
+                                <div>
+                                    <h3 class="font-display font-semibold text-base">${esc(g.name)}</h3>
+                                    <p class="text-[11px] text-theme-muted">${pesoShort(g.target)} by ${fmtMonth(g.targetMonth)}</p>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    ${chip}
+                                    <button onclick="openGoalModal('${g.id}')" class="text-blue-400 hover:text-blue-600 text-xs" aria-label="Edit goal"><i class="fa-solid fa-pen"></i></button>
+                                    <button onclick="deleteGoal('${g.id}')" class="text-rose-400 hover:text-rose-600 text-xs" aria-label="Delete goal"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                            </div>
+                            <div class="w-full bg-theme-accent rounded-full h-2.5 overflow-hidden">
+                                <div class="${done ? 'bg-emerald-500' : 'bg-theme-primary'} h-full rounded-full transition-all duration-500" style="width:${pct}%"></div>
+                            </div>
+                            <div class="flex justify-between items-center gap-2">
+                                <span class="text-xs text-theme-muted"><strong class="text-theme-text">${pesoShort(p.saved)}</strong> saved · ${pct}%</span>
+                                <button onclick="openGoalMoneyModal('${g.id}')" class="text-xs border border-theme-border bg-theme-bg text-theme-primary px-3 py-1.5 rounded-lg font-semibold">+ Add money</button>
+                            </div>
+                            <p class="text-[11px] text-theme-muted">${note}</p>
+                        </div>`;
+                }).join('');
+            }
+
+            summary.innerHTML = `
+                <div class="bg-theme-card border border-theme-border rounded-2xl p-3 shadow-sm">
+                    <span class="text-xs text-theme-muted block">Total Saved</span>
+                    <span class="font-display text-xl font-semibold text-emerald-600">${pesoShort(totalSaved)}</span>
+                </div>
+                <div class="bg-theme-card border border-theme-border rounded-2xl p-3 shadow-sm">
+                    <span class="text-xs text-theme-muted block">This Month's Plan</span>
+                    <span class="font-display text-xl font-semibold text-theme-primary">${pesoShort(monthTotal)}</span>
+                </div>`;
+        }
+
+        function openGoalModal(goalId = null) {
+            let sel = document.getElementById('goalPeriodSelect');
+            sel.innerHTML = '';
+            getActivePeriods().forEach(p => {
+                let opt = document.createElement('option');
+                opt.value = p.id; opt.innerText = p.name;
+                sel.appendChild(opt);
+            });
+            let g = goalId ? findGoal(goalId) : null;
+            document.getElementById('editGoalId').value = g ? g.id : '';
+            document.getElementById('goalModalTitle').innerText = g ? 'Edit Savings Goal' : 'New Savings Goal';
+            document.getElementById('goalName').value = g ? g.name : '';
+            document.getElementById('goalTarget').value = g ? g.target : '';
+            document.getElementById('goalTargetMonth').value = g ? g.targetMonth : addMonths(todayISO().slice(0, 7), 6);
+            document.getElementById('goalOpening').value = g && g.openingSaved ? g.openingSaved : '';
+            sel.value = g ? resolvePeriodId(g.periodId || 'period_0') : 'period_0';
+            document.getElementById('goalModal').classList.remove('hidden');
+        }
+        function closeGoalModal() { document.getElementById('goalModal').classList.add('hidden'); }
+
+        function saveGoal() {
+            let name = document.getElementById('goalName').value.trim();
+            let target = round2(document.getElementById('goalTarget').value);
+            let targetMonth = document.getElementById('goalTargetMonth').value;
+            let openingSaved = round2(document.getElementById('goalOpening').value);
+            let periodId = document.getElementById('goalPeriodSelect').value;
+            let editId = document.getElementById('editGoalId').value;
+            if (!name || !target || !targetMonth) {
+                alert('Please fill in the goal name, target amount and target month.');
+                return;
+            }
+            if (!appData.savingsGoals) appData.savingsGoals = [];
+            if (editId) {
+                let g = findGoal(editId);
+                if (g) Object.assign(g, { name, target, targetMonth, openingSaved, periodId });
+            } else {
+                appData.savingsGoals.push({
+                    id: newId('goal'), name, target, targetMonth, openingSaved, periodId,
+                    startMonth: todayISO().slice(0, 7), plannedOverrides: {}, contributions: []
+                });
+            }
+            closeGoalModal();
+            saveData();
+            if (!editId) sukliSay('savings', `New goal: ${name}! I believe in us.`, 'party');
+        }
+
+        function deleteGoal(goalId) {
+            let g = findGoal(goalId);
+            if (!g || !confirm(`Delete the "${g.name}" goal and its history?`)) return;
+            appData.savingsGoals = appData.savingsGoals.filter(x => x.id !== goalId);
+            saveData();
+        }
+
+        function openGoalMoneyModal(goalId) {
+            let g = findGoal(goalId);
+            if (!g) return;
+            document.getElementById('moneyGoalId').value = goalId;
+            document.getElementById('goalMoneyTitle').innerText = `Add to ${g.name}`;
+            let cur = getGoalPlan(g).months[todayISO().slice(0, 7)];
+            document.getElementById('goalMoneyAmount').value = cur && !cur.isPaid ? cur.amount : '';
+            document.getElementById('goalMoneyDate').value = todayISO();
+            document.getElementById('goalMoneyModal').classList.remove('hidden');
+        }
+        function closeGoalMoneyModal() { document.getElementById('goalMoneyModal').classList.add('hidden'); }
+
+        function saveGoalMoney() {
+            let g = findGoal(document.getElementById('moneyGoalId').value);
+            let amount = round2(document.getElementById('goalMoneyAmount').value);
+            let date = document.getElementById('goalMoneyDate').value;
+            if (!g || !amount || !date) return;
+            if (!g.contributions) g.contributions = [];
+            g.contributions.push({ id: newId('sav'), amount, date, planMonth: date.slice(0, 7), source: 'manual' });
+            closeGoalMoneyModal();
+            saveData();
+            let after = getGoalPlan(g);
+            sukliSay('savings', after.remaining <= 0.005
+                ? `${g.name}: GOAL REACHED! I'd hug you but I'm mostly dust.`
+                : `${g.name} +${pesoShort(amount)}. Future you says salamat.`, 'party');
+        }
+
+        // =====================================================================
+        // SUKLI — the dust-bunny sidekick
+        // =====================================================================
+
+        const SUKLI_QUIPS = [
+            'Tap me again and I start charging ₱5.',
+            "I'm 80% fluff, 20% financial advice.",
+            'Kinsenas is my favorite holiday.',
+            'Every peso you save makes me 1% fluffier.',
+            'Debt is just a boss battle. We are winning.'
+        ];
+        const SUKLI_CHEERS = [
+            'Paid! Look at you being a responsible adult.',
+            'Bill down. Wallet sad, me happy.',
+            'Ding! One less thing to worry about.',
+            'Paid on time? Who ARE you? I love it.'
+        ];
+        let sukliTimers = {};
+
+        function randomCheer() { return SUKLI_CHEERS[Math.floor(Math.random() * SUKLI_CHEERS.length)]; }
+
+        function sukliSVG(mood, size) {
+            const ring = [[98,66],[90.7,88.3],[71.7,102.1],[48.3,102.1],[29.3,88.3],[22,66],[29.3,43.7],[48.3,29.9],[71.7,29.9],[90.7,43.7]]
+                .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="11"/>`).join('');
+            const ink = '#2d2440';
+            const faces = {
+                happy: `<circle cx="48" cy="64" r="4.5" fill="${ink}"/><circle cx="72" cy="64" r="4.5" fill="${ink}"/><circle cx="49.5" cy="62.5" r="1.4" fill="#fff"/><circle cx="73.5" cy="62.5" r="1.4" fill="#fff"/><path d="M55 73 Q60 78 65 73" fill="none" stroke="${ink}" stroke-width="2.5" stroke-linecap="round"/>`,
+                worried: `<circle cx="48" cy="65" r="5.5" fill="${ink}"/><circle cx="72" cy="65" r="5.5" fill="${ink}"/><circle cx="49.8" cy="63.2" r="1.6" fill="#fff"/><circle cx="73.8" cy="63.2" r="1.6" fill="#fff"/><path d="M42 56 L52 52 M78 56 L68 52" fill="none" stroke="${ink}" stroke-width="2.5" stroke-linecap="round"/><path d="M53 78 Q56.5 74 60 78 Q63.5 82 67 78" fill="none" stroke="${ink}" stroke-width="2.5" stroke-linecap="round"/><path d="M89 42 Q94 50 89 53 Q84 50 89 42 Z" fill="#93c5fd"/>`,
+                party: `<path d="M43 65 Q48 58 53 65 M67 65 Q72 58 77 65" fill="none" stroke="${ink}" stroke-width="2.5" stroke-linecap="round"/><path d="M53 72 Q60 84 67 72 Z" fill="${ink}"/><rect x="14" y="22" width="6" height="6" rx="1" fill="#9333ea" transform="rotate(20 17 25)"/><circle cx="104" cy="40" r="7" fill="#e9c46a" stroke="#c9a24a" stroke-width="2"/><circle cx="14" cy="42" r="5" fill="#e9c46a" stroke="#c9a24a" stroke-width="1.5"/><circle cx="96" cy="14" r="4" fill="#e9c46a" stroke="#c9a24a" stroke-width="1.5"/><rect x="8" y="58" width="5" height="5" rx="1" fill="#f472b6"/><circle cx="24" cy="10" r="2.5" fill="#60a5fa"/>`,
+                sleepy: `<path d="M43 64 Q48 68 53 64 M67 64 Q72 68 77 64" fill="none" stroke="${ink}" stroke-width="2.5" stroke-linecap="round"/><circle cx="60" cy="76" r="2.5" fill="none" stroke="${ink}" stroke-width="2"/><text x="92" y="34" font-size="15" font-weight="800" fill="#9333ea" font-family="Nunito, sans-serif">z</text><text x="102" y="22" font-size="11" font-weight="800" fill="#9333ea" font-family="Nunito, sans-serif">z</text>`
+            };
+            return `<svg viewBox="0 0 120 120" width="${size}" height="${size}" aria-hidden="true">
+                <ellipse cx="60" cy="116" rx="32" ry="4" fill="${ink}" opacity="0.08"/>
+                <circle cx="42" cy="17" r="7" fill="#fff" stroke="#e4d4f4" stroke-width="2"/>
+                <circle cx="78" cy="17" r="7" fill="#fff" stroke="#e4d4f4" stroke-width="2"/>
+                <g fill="#fff" stroke="#e4d4f4" stroke-width="2">${ring}</g>
+                <circle cx="60" cy="66" r="39" fill="#fff"/>
+                <ellipse cx="46" cy="106" rx="8" ry="4.5" fill="#f3e8ff" stroke="#e4d4f4" stroke-width="2"/>
+                <ellipse cx="74" cy="106" rx="8" ry="4.5" fill="#f3e8ff" stroke="#e4d4f4" stroke-width="2"/>
+                <ellipse cx="40" cy="75" rx="6" ry="3.5" fill="#f9a8d4" opacity="0.7"/>
+                <ellipse cx="80" cy="75" rx="6" ry="3.5" fill="#f9a8d4" opacity="0.7"/>
+                ${faces[mood] || faces.happy}
+            </svg>`;
+        }
+
+        function isBudgetEmpty(mData) {
+            let anyIncome = Object.values(mData.incomes || {}).some(list => list && list.length);
+            return !anyIncome && mData.expenses.length === 0;
+        }
+
+        function budgetMonthLeft(mData) {
+            let income = 0;
+            getActivePeriods().forEach(p => (mData.incomes[p.id] || []).forEach(i => income += Number(i.amount || 0)));
+            let spent = mData.expenses.reduce((t, e) => t + Number(e.amount || 0), 0);
+            return income - spent;
+        }
+
+        function sukliDefault(tab) {
+            if (tab === 'auth') return { mood: 'happy', msg: 'Welcome back! I kept your pesos warm.' };
+            if (tab === 'budget') {
+                let m = getActiveMonthData();
+                if (isBudgetEmpty(m)) return { mood: 'sleepy', msg: "Nothing here yet. I'll nap until you add your first income." };
+                let left = budgetMonthLeft(m);
+                return left < 0
+                    ? { mood: 'worried', msg: `Okay bestie, we're ${pesoShort(-left)} over for ${fmtMonth(currentMonth)}. Maybe water this time?` }
+                    : { mood: 'happy', msg: `${pesoShort(left)} left for ${fmtMonth(currentMonth)}. We're thriving. Mostly.` };
+            }
+            if (tab === 'loans') {
+                let loans = appData.loans || [];
+                if (!loans.length) return { mood: 'sleepy', msg: 'No loans in here. Love that for you.' };
+                let sts = loans.map(l => ({ l, st: getLoanStatus(l) }));
+                let behind = sts.filter(x => x.st.overdue > 0.005);
+                if (behind.length) return { mood: 'worried', msg: `Psst. ${behind[0].l.lender} is ${pesoShort(behind[0].st.overdue)} behind. Let's fix that first?` };
+                let rem = sts.reduce((t, x) => t + x.st.remaining, 0);
+                return rem <= 0.005
+                    ? { mood: 'party', msg: 'Every loan is paid off. Tell everyone. Tell the bank.' }
+                    : { mood: 'happy', msg: `All loans current. ${pesoShort(rem)} left to pay off. We got this.` };
+            }
+            if (tab === 'savings') {
+                let goals = appData.savingsGoals || [];
+                if (!goals.length) return { mood: 'sleepy', msg: 'No goals yet. Even ₱500 a month adds up.' };
+                let nowYm = todayISO().slice(0, 7);
+                let t = goals.reduce((sum, g) => { let c = getGoalPlan(g).months[nowYm]; return sum + (c ? c.amount : 0); }, 0);
+                return { mood: 'happy', msg: t > 0 ? `${pesoShort(t)} this month keeps every goal on track.` : 'Every goal is on track. Look at us.' };
+            }
+            return { mood: 'happy', msg: 'Hi!' };
+        }
+
+        function renderSukli(tab) {
+            const el = document.getElementById(`sukli-${tab}`);
+            if (!el) return;
+            let d = sukliDefault(tab);
+            let o = uiState.sukli[tab];
+            let msg = d.msg, mood = d.mood;
+            if (o && o.until > Date.now()) { msg = o.msg; if (o.mood) mood = o.mood; }
+            const btn = (size) => `<button type="button" onclick="tapSukli('${tab}')" aria-label="Tap Sukli" class="sukli-btn block bg-transparent border-0 p-0 cursor-pointer">${sukliSVG(mood, size)}</button>`;
+            const bubbleCls = 'sukli-bubble bg-theme-card border-2 border-theme-border px-3.5 py-2.5 text-sm font-bold leading-snug text-theme-text';
+            if (tab === 'auth') {
+                el.innerHTML = `
+                    <div class="${bubbleCls} rounded-2xl rounded-bl-md max-w-[260px] text-center">${esc(msg)}</div>
+                    <div class="sukli-bob">${btn(116)}</div>`;
+            } else {
+                el.innerHTML = `
+                    <div class="flex items-end gap-1.5">
+                        <div class="${mood === 'sleepy' ? 'sukli-breathe' : 'sukli-bob'} flex-shrink-0">${btn(92)}</div>
+                        <div class="${bubbleCls} flex-1 rounded-2xl rounded-bl-md mb-7">${esc(msg)}</div>
+                    </div>`;
+            }
+        }
+
+        function renderSuklis() { ['auth', 'budget', 'loans', 'savings'].forEach(renderSukli); }
+
+        function sukliSay(tab, msg, mood = null) {
+            uiState.sukli[tab] = { msg, mood, until: Date.now() + 6000 };
+            renderSukli(tab);
+            const el = document.getElementById(`sukli-${tab}`);
+            if (el) {
+                [['.sukli-btn', 'sukli-hop'], ['.sukli-bubble', 'sukli-pop']].forEach(([sel, cls]) => {
+                    let n = el.querySelector(sel);
+                    if (!n) return;
+                    n.classList.remove(cls);
+                    void n.offsetWidth;   // restart the animation
+                    n.classList.add(cls);
+                });
+            }
+            clearTimeout(sukliTimers[tab]);
+            sukliTimers[tab] = setTimeout(() => renderSukli(tab), 6100);
+        }
+
+        function tapSukli(tab) {
+            uiState.quip = (uiState.quip || 0) + 1;
+            sukliSay(tab, SUKLI_QUIPS[uiState.quip % SUKLI_QUIPS.length]);
+        }
+
+        function sukliReactToSpend(title) {
+            let d = sukliDefault('budget');
+            if (d.mood === 'worried') { sukliSay('budget', d.msg); return; }
+            let left = budgetMonthLeft(getActiveMonthData());
+            sukliSay('budget', `${title}? Noted. Still ${pesoShort(left)} left though!`);
+        }
+
+        function sukliLoanCheer(loan, before, after) {
+            if (before.overdue > 0.005 && after.overdue <= 0.005) {
+                sukliSay('budget', "Caught up! I can breathe again. (I don't have lungs.)", 'party');
+                return;
+            }
+            let pb = before.totalWithCharges ? before.paidTotal / before.totalWithCharges : 0;
+            let pa = after.totalWithCharges ? after.paidTotal / after.totalWithCharges : 0;
+            if (pb < 1 && pa >= 1) { sukliSay('budget', `${loan.lender} is PAID OFF!!! Tell everyone. Tell the bank.`, 'party'); return; }
+            for (const m of [0.75, 0.5, 0.25]) {
+                if (pb < m && pa >= m) { sukliSay('budget', `${Math.round(m * 100)}% of ${loan.lender} done! I'm buying myself a tiny cake.`, 'party'); return; }
+            }
+            sukliSay('budget', randomCheer(), 'party');
+        }
+
+        function renderBudgetEmptyState() {
+            const el = document.getElementById('budgetEmptyState');
+            if (!el) return;
+            const m = getActiveMonthData();
+            if (!isBudgetEmpty(m)) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+            el.classList.remove('hidden');
+            el.innerHTML = `
+                <div class="bg-theme-card border border-theme-border rounded-2xl p-5 text-center space-y-3 shadow-sm">
+                    <h2 class="font-display font-semibold text-xl">Let's set up ${fmtMonth(currentMonth)}</h2>
+                    <p class="text-sm text-theme-muted">Add your pay first, then your regular bills. Loans and savings goals drop in automatically.</p>
+                    <div class="space-y-2">
+                        <button onclick="openAddIncomeModalPrompt('${getActivePeriods()[0].id}')" class="w-full bg-theme-primary text-white py-3 rounded-xl text-sm font-bold">+ Add income</button>
+                        <button onclick="switchMoreTab('recurring')" class="w-full border border-theme-border bg-theme-card text-theme-primary py-3 rounded-xl text-sm font-bold">Set up recurring bills</button>
+                    </div>
+                </div>`;
+        }
+
 
         // =====================================================================
         // SETTINGS, NOTES, TIME COST
