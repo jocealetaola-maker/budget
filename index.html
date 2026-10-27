@@ -6,7 +6,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <title>LifeHub - Budget & Loans Ledger</title>
+    <title>Muni by buhat - Budget & Loans Ledger</title>
+    <meta name="apple-mobile-web-app-title" content="Muni">
+    <meta name="theme-color" content="#2d2440">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='28' fill='%232d2440'/%3E%3Cpath d='M58 24 A36 36 0 0 0 58 96 Z' fill='%23e9c46a'/%3E%3Cpath d='M62 24 A36 36 0 0 1 62 96 Z' fill='none' stroke='%23e9c46a' stroke-width='5'/%3E%3C/svg%3E">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -97,10 +100,9 @@
     <div id="authOverlay" class="fixed inset-0 z-50 bg-theme-bg flex items-center justify-center p-4">
         <div class="bg-theme-card border border-theme-border w-full max-w-sm rounded-3xl p-6 shadow-xl space-y-4">
             <div class="text-center space-y-1">
-                <div class="w-12 h-12 rounded-2xl bg-theme-accent text-theme-primary mx-auto flex items-center justify-center font-bold text-xl">
-                    <i class="fa-solid fa-wallet"></i>
-                </div>
-                <h1 class="font-bold text-lg">Welcome to LifeHub</h1>
+                <svg class="w-14 h-14 mx-auto" viewBox="0 0 120 120" aria-hidden="true"><rect width="120" height="120" rx="28" fill="#2d2440"/><path d="M58 24 A36 36 0 0 0 58 96 Z" fill="#e9c46a"/><path d="M62 24 A36 36 0 0 1 62 96 Z" fill="none" stroke="#e9c46a" stroke-width="5"/></svg>
+                <h1 class="font-bold text-lg">Welcome to Muni</h1>
+                <p class="text-[10px] uppercase tracking-widest text-theme-muted">by buhat</p>
                 <p id="authSubtitle" class="text-xs text-theme-muted">Sign in with your username or email & PIN</p>
             </div>
             
@@ -129,11 +131,9 @@
     <!-- Top Navigation Header -->
     <header class="sticky top-0 z-40 bg-theme-card/90 backdrop-blur border-b border-theme-border px-4 py-3 flex justify-between items-center shadow-sm">
         <div class="flex items-center space-x-2">
-            <div class="w-9 h-9 rounded-xl bg-theme-accent text-theme-primary flex items-center justify-center font-bold text-lg">
-                <i class="fa-solid fa-wallet"></i>
-            </div>
+            <svg class="w-9 h-9 flex-shrink-0" viewBox="0 0 120 120" aria-hidden="true"><rect width="120" height="120" rx="28" fill="#2d2440"/><path d="M58 24 A36 36 0 0 0 58 96 Z" fill="#e9c46a"/><path d="M62 24 A36 36 0 0 1 62 96 Z" fill="none" stroke="#e9c46a" stroke-width="5"/></svg>
             <div>
-                <h1 class="font-bold text-base leading-tight">LifeHub</h1>
+                <h1 class="font-bold text-base leading-tight">Muni <span class="text-[10px] font-medium text-theme-muted">by buhat</span></h1>
                 <p id="syncStatusIndicator" class="text-xs text-theme-muted">Connecting to Supabase...</p>
             </div>
         </div>
@@ -187,6 +187,9 @@
             </div>
 
             <div id="payPeriodsContainer" class="space-y-4"></div>
+
+            <!-- Loan Overdue Status (as of today) -->
+            <div id="loanStatusCard" class="bg-theme-card border border-theme-border rounded-2xl p-4 shadow-sm space-y-2 hidden"></div>
         </section>
 
         <!-- TAB 2: Summary & Highest Expenses Analysis -->
@@ -214,7 +217,7 @@
                 <div class="flex justify-between items-center">
                     <div>
                         <h2 class="font-bold text-base">Recurring Expenses</h2>
-                        <p class="text-xs text-theme-muted">Rolling master template copied across all months</p>
+                        <p class="text-xs text-theme-muted">Master template copied across all months. Edits in Budget only change that month.</p>
                     </div>
                 </div>
                 <div id="recurringColumnsContainer" class="space-y-4"></div>
@@ -224,9 +227,9 @@
                 <div class="flex justify-between items-center">
                     <div>
                         <h2 class="font-bold text-base">Loans & Lenders</h2>
-                        <p class="text-xs text-theme-muted">Manage debt with waterfall planning ledger</p>
+                        <p class="text-xs text-theme-muted">Planned payments flow into Budget until paid off</p>
                     </div>
-                    <button onclick="openAddLoanModal()" class="text-xs bg-theme-primary text-white px-3 py-1.5 rounded-lg font-medium">
+                    <button onclick="openLoanModal()" class="text-xs bg-theme-primary text-white px-3 py-1.5 rounded-lg font-medium">
                         + Add Loan
                     </button>
                 </div>
@@ -439,30 +442,42 @@
         </div>
     </div>
 
-    <div id="addLoanModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="bg-theme-card w-full max-w-sm rounded-2xl p-4 shadow-xl border border-theme-border space-y-3">
-            <h3 class="font-bold text-base">Add Loan / Lender</h3>
+    <!-- Add / Edit Loan -->
+    <div id="loanModal" class="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-theme-card w-full max-w-sm rounded-2xl p-4 shadow-xl border border-theme-border space-y-3 max-h-[90vh] overflow-y-auto">
+            <h3 id="loanModalTitle" class="font-bold text-base">Add Loan / Lender</h3>
+            <input type="hidden" id="editLoanId">
             <div>
                 <label class="block text-xs text-theme-muted mb-1">Lender / Loan Name</label>
                 <input type="text" id="loanLenderName" placeholder="e.g. Bank Loan" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
             </div>
             <div>
-                <label class="block text-xs text-theme-muted mb-1">Current Balance / Overdue (PHP)</label>
-                <input type="number" id="loanOverdueAmount" placeholder="0.00" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+                <label class="block text-xs text-theme-muted mb-1">Total Loan Amount (₱)</label>
+                <input type="number" id="loanTotalAmount" placeholder="e.g. 500000" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+                <p class="text-[10px] text-theme-muted mt-1">Include interest if it's already part of what you owe.</p>
             </div>
             <div class="grid grid-cols-2 gap-2">
                 <div>
-                    <label class="block text-xs text-theme-muted mb-1">Due Date</label>
-                    <input type="date" id="loanDueDate" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs text-theme-muted mb-1">Monthly Due</label>
+                    <label class="block text-xs text-theme-muted mb-1">Monthly Due (₱)</label>
                     <input type="number" id="loanMonthlyDue" placeholder="0.00" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
                 </div>
+                <div>
+                    <label class="block text-xs text-theme-muted mb-1">First Due Date</label>
+                    <input type="date" id="loanFirstDueDate" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs text-theme-muted mb-1">Already Paid Before Tracking (₱)</label>
+                <input type="number" id="loanOpeningPaid" placeholder="0.00" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+                <p class="text-[10px] text-theme-muted mt-1">Don't know the history? Enter the remaining balance as the total, your next due date as the first due date, and leave this at 0.</p>
+            </div>
+            <div>
+                <label class="block text-xs text-theme-muted mb-1">Show in Budget Pay Period</label>
+                <select id="loanPeriodSelect" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm"></select>
             </div>
             <div class="flex space-x-2 pt-2">
-                <button onclick="closeAddLoanModal()" class="flex-1 bg-theme-bg py-2 rounded-xl text-xs font-medium border border-theme-border">Cancel</button>
-                <button onclick="saveNewLoan()" class="flex-1 bg-theme-primary text-white py-2 rounded-xl text-xs font-medium">Save Loan</button>
+                <button onclick="closeLoanModal()" class="flex-1 bg-theme-bg py-2 rounded-xl text-xs font-medium border border-theme-border">Cancel</button>
+                <button onclick="saveLoan()" class="flex-1 bg-theme-primary text-white py-2 rounded-xl text-xs font-medium">Save Loan</button>
             </div>
         </div>
     </div>
@@ -472,41 +487,45 @@
             <div class="p-4 border-b border-theme-border flex justify-between items-center bg-theme-bg">
                 <div>
                     <h3 id="ledgerModalTitle" class="font-bold text-base">Loan Waterfall Ledger</h3>
-                    <p class="text-xs text-theme-muted">Track amounts due and payments chronologically</p>
+                    <p class="text-xs text-theme-muted">Scheduled dues vs. payments, oldest first</p>
                 </div>
-                <button onclick="closeLoanLedgerModal()" class="w-8 h-8 rounded-full bg-theme-card border border-theme-border flex items-center justify-center text-xs"><i class="fa-solid fa-xmark"></i></button>
+                <div class="flex items-center space-x-2">
+                    <button onclick="openLoanModal(currentActiveLoanId)" class="w-8 h-8 rounded-full bg-theme-card border border-theme-border flex items-center justify-center text-xs text-theme-primary" title="Edit loan details"><i class="fa-solid fa-pen"></i></button>
+                    <button onclick="closeLoanLedgerModal()" class="w-8 h-8 rounded-full bg-theme-card border border-theme-border flex items-center justify-center text-xs"><i class="fa-solid fa-xmark"></i></button>
+                </div>
             </div>
             <div class="p-4 overflow-y-auto space-y-4 flex-1" id="ledgerContentContainer"></div>
             <div class="p-3 border-t border-theme-border bg-theme-bg flex space-x-2">
-                <button onclick="openLedgerAddDueModal()" class="flex-1 bg-theme-accent text-theme-primary py-2.5 rounded-xl text-xs font-medium">+ Add Amount Due</button>
+                <button onclick="openLedgerAddChargeModal()" class="flex-1 bg-theme-accent text-theme-primary py-2.5 rounded-xl text-xs font-medium">+ Add Charge / Fee</button>
                 <button onclick="openLedgerAddPaymentModal()" class="flex-1 bg-theme-primary text-white py-2.5 rounded-xl text-xs font-medium">+ Add Payment</button>
             </div>
         </div>
     </div>
 
-    <div id="addLedgerDueModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="addLedgerChargeModal" class="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="bg-theme-card w-full max-w-sm rounded-2xl p-4 shadow-xl border border-theme-border space-y-3">
-            <h3 class="font-bold text-base">Add Amount Due</h3>
+            <h3 class="font-bold text-base">Add Charge / Fee</h3>
+            <p class="text-[10px] text-theme-muted">For extra amounts on top of the loan (e.g. late fees). Adds to the balance and is due on the date below.</p>
             <div>
-                <label class="block text-xs text-theme-muted mb-1">Description / Title</label>
-                <input type="text" id="ledgerDueTitleInput" value="Monthly Bill" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+                <label class="block text-xs text-theme-muted mb-1">Description</label>
+                <input type="text" id="ledgerChargeTitleInput" value="Late fee" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
             </div>
             <div>
                 <label class="block text-xs text-theme-muted mb-1">Amount (₱ PHP)</label>
-                <input type="number" id="ledgerDueAmountInput" placeholder="0.00" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+                <input type="number" id="ledgerChargeAmountInput" placeholder="0.00" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
             </div>
             <div>
                 <label class="block text-xs text-theme-muted mb-1">Due Date</label>
-                <input type="date" id="ledgerDueDateInput" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
+                <input type="date" id="ledgerChargeDateInput" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
             </div>
             <div class="flex space-x-2 pt-2">
-                <button onclick="closeLedgerAddDueModal()" class="flex-1 bg-theme-bg py-2 rounded-xl text-xs font-medium border border-theme-border">Cancel</button>
-                <button onclick="saveLedgerDue()" class="flex-1 bg-theme-primary text-white py-2 rounded-xl text-xs font-medium">Add Due</button>
+                <button onclick="closeLedgerAddChargeModal()" class="flex-1 bg-theme-bg py-2 rounded-xl text-xs font-medium border border-theme-border">Cancel</button>
+                <button onclick="saveLedgerCharge()" class="flex-1 bg-theme-primary text-white py-2 rounded-xl text-xs font-medium">Add Charge</button>
             </div>
         </div>
     </div>
 
-    <div id="addLedgerPaymentModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="addLedgerPaymentModal" class="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="bg-theme-card w-full max-w-sm rounded-2xl p-4 shadow-xl border border-theme-border space-y-3">
             <h3 class="font-bold text-base">Add Loan Payment</h3>
             <div>
@@ -516,10 +535,7 @@
             <div>
                 <label class="block text-xs text-theme-muted mb-1">Payment Date</label>
                 <input type="date" id="ledgerPaymentDateInput" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm">
-            </div>
-            <div>
-                <label class="block text-xs text-theme-muted mb-1">Assign to Pay Period</label>
-                <select id="ledgerPaymentPeriodSelect" class="w-full bg-theme-bg border border-theme-border rounded-xl px-3 py-2 text-sm"></select>
+                <p class="text-[10px] text-theme-muted mt-1">Shows as paid in that month's Budget.</p>
             </div>
             <div class="flex space-x-2 pt-2">
                 <button onclick="closeLedgerAddPaymentModal()" class="flex-1 bg-theme-bg py-2 rounded-xl text-xs font-medium border border-theme-border">Cancel</button>
@@ -534,7 +550,34 @@
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1cnZoZXl4Y2pncm90cWptbWJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2MTEyNDMsImV4cCI6MjEwNjE4NzI0M30.ETKUDlMXSQzEE30i3Zop9mV_Ok86IOyb0ijJKWJYKGc";
         let sb = null;
 
-        let currentMonth = new Date().toISOString().slice(0, 7);
+        // ---------- Date & format helpers (local time, not UTC) ----------
+        function pad(n) { return String(n).padStart(2, '0'); }
+        function todayISO() {
+            const d = new Date();
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        }
+        function addMonths(ym, n) {
+            let [y, m] = ym.split('-').map(Number);
+            let idx = y * 12 + (m - 1) + n;
+            return `${Math.floor(idx / 12)}-${pad((idx % 12) + 1)}`;
+        }
+        function round2(n) { return Math.round(Number(n || 0) * 100) / 100; }
+        function newId(prefix) { return prefix + '_' + Date.now() + Math.random().toString(36).substr(2, 5); }
+        function fmtDate(iso) {
+            if (!iso) return '';
+            let [y, m, d] = iso.split('-').map(Number);
+            return new Date(y, m - 1, d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+        function fmtMonth(ym) {
+            if (!ym) return '';
+            let [y, m] = ym.split('-').map(Number);
+            return new Date(y, m - 1, 1).toLocaleDateString('en-PH', { month: 'short', year: 'numeric' });
+        }
+        function esc(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        let currentMonth = todayISO().slice(0, 7);
         let isSignupMode = false;
         let currentUser = null;
         let currentActiveLoanId = null;
@@ -612,20 +655,16 @@
                     const { data, error } = await sb.auth.signUp({ email: pseudoEmail, password: password });
                     if (error) { alert(error.message); return; }
                 }
-                currentUser = userInput.toLowerCase();
-                localStorage.setItem('lifehub_current_user', currentUser);
-                document.getElementById('authOverlay').classList.add('hidden');
-                await loadUserData();
             } else {
                 if (sb) {
                     const { data, error } = await sb.auth.signInWithPassword({ email: pseudoEmail, password: password });
                     if (error) { alert('Invalid username/email or password/PIN.'); return; }
                 }
-                currentUser = userInput.toLowerCase();
-                localStorage.setItem('lifehub_current_user', currentUser);
-                document.getElementById('authOverlay').classList.add('hidden');
-                await loadUserData();
             }
+            currentUser = userInput.toLowerCase();
+            localStorage.setItem('lifehub_current_user', currentUser);
+            document.getElementById('authOverlay').classList.add('hidden');
+            await loadUserData();
         }
 
         async function handleLogout() {
@@ -679,6 +718,10 @@
             if (!appData.recurringExpenses) appData.recurringExpenses = [];
             if (!appData.loans) appData.loans = [];
             if (!appData.notes) appData.notes = [];
+            if (!appData.settings) appData.settings = getDefaultAppData().settings;
+
+            // Upgrade older loan records to the new total-amount model
+            appData.loans.forEach(migrateLoan);
 
             setTheme(appData.theme || 'lilac', false);
             initSettingsUI();
@@ -709,11 +752,7 @@
         }
 
         function shiftMonth(delta) {
-            let [y, m] = currentMonth.split('-').map(Number);
-            m += delta;
-            if (m > 12) { m = 1; y++; }
-            if (m < 1) { m = 12; y--; }
-            currentMonth = `${y}-${String(m).padStart(2, '0')}`;
+            currentMonth = addMonths(currentMonth, delta);
             document.getElementById('monthPickerInput').value = currentMonth;
             renderAll();
         }
@@ -756,10 +795,15 @@
 
         function renderAll() {
             renderPayPeriods();
+            renderLoanStatusCard();
             renderRecurringColumns();
             renderLoans();
             renderNotesList();
             updateMonthSummary();
+            if (currentActiveLoanId) {
+                let loan = appData.loans.find(l => l.id === currentActiveLoanId);
+                if (loan) renderLedgerEntries(loan);
+            }
         }
 
         function formatPHP(amount) {
@@ -781,118 +825,276 @@
             return periods;
         }
 
+        // If a loan's period no longer exists (e.g. switched to Monthly), fall back to the last period
+        function resolvePeriodId(pid) {
+            let periods = getActivePeriods();
+            if (periods.some(p => p.id === pid)) return pid;
+            return periods[periods.length - 1].id;
+        }
+
+        // =====================================================================
+        // LOAN ENGINE
+        // Loan: { id, lender, totalAmount, monthlyDue, firstDueDate, openingPaid,
+        //         periodId, plannedOverrides: { 'YYYY-MM': amount },
+        //         entries: [ {type:'payment', amount, date, planMonth} | {type:'charge', title, amount, date} ] }
+        // =====================================================================
+
+        function migrateLoan(loan) {
+            if (loan.v === 2) return;
+            let entries = loan.entries || [];
+            let dues = entries.filter(e => e.type === 'due');
+            let total = dues.reduce((s, e) => s + Number(e.amount || 0), 0);
+            loan.totalAmount = total || Number(loan.overdueAmount || 0);
+            loan.monthlyDue = Number(loan.monthlyAmountDue || 0);
+            loan.firstDueDate = loan.dueDate || todayISO();
+            let firstPay = entries.find(e => e.type === 'payment' && e.periodId);
+            loan.periodId = loan.periodId || (firstPay ? firstPay.periodId : 'period_0');
+            loan.openingPaid = 0;
+            loan.plannedOverrides = {};
+            loan.entries = entries.filter(e => e.type === 'payment').map(e => ({
+                id: e.id || newId('pay'),
+                type: 'payment',
+                amount: Number(e.amount || 0),
+                date: e.date,
+                planMonth: (e.date || todayISO()).slice(0, 7)
+            }));
+            delete loan.overdueAmount; delete loan.monthlyAmountDue; delete loan.dueDate;
+            loan.v = 2;
+        }
+
+        function dueDateInMonth(loan, ym) {
+            let day = Number((loan.firstDueDate || todayISO()).split('-')[2]);
+            let [y, m] = ym.split('-').map(Number);
+            let dim = new Date(y, m, 0).getDate();
+            return `${ym}-${pad(Math.min(day, dim))}`;
+        }
+
+        function getPayments(loan) { return (loan.entries || []).filter(e => e.type === 'payment'); }
+        function getCharges(loan) { return (loan.entries || []).filter(e => e.type === 'charge'); }
+        function sumAmt(list) { return list.reduce((s, e) => s + Number(e.amount || 0), 0); }
+
+        // Contractual schedule: monthlyDue every month from first due date until total is covered
+        function getLoanSchedule(loan) {
+            let out = [];
+            let total = Number(loan.totalAmount || 0), md = Number(loan.monthlyDue || 0);
+            if (!total || md <= 0 || !loan.firstDueDate) return out;
+            let startYm = loan.firstDueDate.slice(0, 7);
+            let cum = 0;
+            for (let i = 0; cum < total - 0.005 && i < 600; i++) {
+                let amt = Math.min(md, total - cum);
+                let ym = addMonths(startYm, i);
+                out.push({ month: ym, date: dueDateInMonth(loan, ym), amount: round2(amt) });
+                cum += amt;
+            }
+            return out;
+        }
+
+        // Your plan: what goes in the Budget each month until paid off (respects your edits + actual payments)
+        function getLoanPlan(loan) {
+            let months = {};
+            if (!loan.firstDueDate) return { months, payoffMonth: null };
+            let pays = getPayments(loan);
+            let remaining = Number(loan.totalAmount || 0) + sumAmt(getCharges(loan)) - Number(loan.openingPaid || 0);
+            let startYm = loan.firstDueDate.slice(0, 7);
+            let earliestPay = pays.reduce((min, p) => (!min || p.planMonth < min) ? p.planMonth : min, null);
+            let ym = (earliestPay && earliestPay < startYm) ? earliestPay : startYm;
+            let md = Number(loan.monthlyDue || 0);
+            let overrides = loan.plannedOverrides || {};
+            let payoffMonth = null;
+
+            for (let i = 0; i < 600; i++) {
+                let monthPays = pays.filter(p => p.planMonth === ym);
+                let laterPays = pays.some(p => p.planMonth > ym);
+                if (monthPays.length) {
+                    let paid = sumAmt(monthPays);
+                    remaining -= paid;
+                    months[ym] = { amount: round2(paid), isPaid: true, count: monthPays.length, isFinal: remaining <= 0.005 };
+                } else if (ym >= startYm) {
+                    if (remaining <= 0.005) {
+                        if (!laterPays) break;
+                    } else {
+                        let hasOv = overrides[ym] !== undefined && overrides[ym] !== null;
+                        if (!hasOv && md <= 0 && !laterPays) break;
+                        let amt = hasOv ? Number(overrides[ym]) : Math.min(md, remaining);
+                        remaining -= amt;
+                        months[ym] = { amount: round2(amt), isPaid: false, isOverride: hasOv, count: 0, isFinal: remaining <= 0.005 };
+                    }
+                }
+                if (remaining <= 0.005 && !payoffMonth && months[ym]) payoffMonth = ym;
+                ym = addMonths(ym, 1);
+            }
+            return { months, payoffMonth };
+        }
+
+        // Status vs. contract, as of today
+        function getLoanStatus(loan, asOf = todayISO()) {
+            let schedule = getLoanSchedule(loan);
+            let charges = getCharges(loan);
+            let payments = getPayments(loan);
+            let opening = Number(loan.openingPaid || 0);
+
+            let dueItems = schedule.map(s => ({ date: s.date, amount: s.amount }))
+                .concat(charges.map(c => ({ date: c.date, amount: Number(c.amount || 0) })))
+                .filter(d => d.date <= asOf)
+                .sort((a, b) => a.date.localeCompare(b.date));
+
+            let dueToDate = sumAmt(dueItems);
+            let paidToDate = opening + sumAmt(payments.filter(p => p.date <= asOf));
+            let overdue = round2(Math.max(0, dueToDate - paidToDate));
+
+            // Which dues are still uncovered (oldest first)
+            let cover = paidToDate, behindCount = 0, oldestUnpaid = null;
+            dueItems.forEach(d => {
+                if (cover >= d.amount - 0.005) { cover -= d.amount; }
+                else { behindCount++; if (!oldestUnpaid) oldestUnpaid = d.date; cover = 0; }
+            });
+
+            let totalWithCharges = Number(loan.totalAmount || 0) + sumAmt(charges);
+            let paidTotal = opening + sumAmt(payments);
+            let remaining = round2(Math.max(0, totalWithCharges - paidTotal));
+            let nextDue = schedule.find(s => s.date > asOf) || null;
+
+            return { overdue, behindCount, oldestUnpaid, remaining, paidTotal: round2(paidTotal), totalWithCharges: round2(totalWithCharges), nextDue, schedule };
+        }
+
+        // =====================================================================
+        // BUDGET MONTH DATA
+        // =====================================================================
+
         function getActiveMonthData() {
             if (!appData.monthsData[currentMonth]) {
-                appData.monthsData[currentMonth] = { incomes: {}, hiddenRecurring: [], paidStatus: {}, manualExpenses: {} };
+                appData.monthsData[currentMonth] = { incomes: {}, hiddenRecurring: [], paidStatus: {}, manualExpenses: {}, recurringOverrides: {} };
             }
             let mData = appData.monthsData[currentMonth];
             if (!mData.hiddenRecurring) mData.hiddenRecurring = [];
             if (!mData.paidStatus) mData.paidStatus = {};
             if (!mData.incomes) mData.incomes = {};
             if (!mData.manualExpenses) mData.manualExpenses = {};
+            if (!mData.recurringOverrides) mData.recurringOverrides = {};
 
             let computedExpenses = [];
             
-            // Map regular recurring expenses
-            if (appData.recurringExpenses && appData.recurringExpenses.length > 0) {
-                appData.recurringExpenses.forEach(rec => {
-                    if (!mData.hiddenRecurring.includes(rec.id)) {
-                        computedExpenses.push({
-                            id: rec.id,
-                            title: rec.title,
-                            category: rec.category,
-                            amount: rec.amount,
-                            periodId: rec.periodId,
-                            isPaid: !!mData.paidStatus[rec.id],
-                            isLoan: false,
-                            isManual: false
-                        });
-                    }
+            // Recurring (with month-only overrides)
+            (appData.recurringExpenses || []).forEach(rec => {
+                if (mData.hiddenRecurring.includes(rec.id)) return;
+                let ov = mData.recurringOverrides[rec.id];
+                let hasOv = ov !== undefined && ov !== null;
+                computedExpenses.push({
+                    id: rec.id,
+                    kind: 'recurring',
+                    title: rec.title,
+                    category: rec.category,
+                    amount: hasOv ? ov : rec.amount,
+                    masterAmount: rec.amount,
+                    isOverride: hasOv,
+                    periodId: rec.periodId,
+                    isPaid: !!mData.paidStatus[rec.id]
                 });
-            }
+            });
 
-            // Map manual non-recurring expenses for this month specifically
+            // Manual one-off expenses for this month
             Object.keys(mData.manualExpenses).forEach(pId => {
                 mData.manualExpenses[pId].forEach(exp => {
                     computedExpenses.push({
                         id: exp.id,
+                        kind: 'manual',
                         title: exp.title,
                         category: exp.category || 'Manual',
                         amount: exp.amount,
                         periodId: pId,
-                        isPaid: !!mData.paidStatus[exp.id],
-                        isLoan: false,
-                        isManual: true
+                        isPaid: !!mData.paidStatus[exp.id]
                     });
                 });
             });
 
-            // Sync loan ledger payments mapped to this specific month and period directly into Budget views
-            if (appData.loans && appData.loans.length > 0) {
-                appData.loans.forEach(loan => {
-                    if (loan.entries) {
-                        loan.entries.forEach((entry) => {
-                            if (!entry.id) entry.id = 'entry_' + Math.random().toString(36).substr(2, 9);
-                            if (entry.type === 'payment' && entry.date.startsWith(currentMonth)) {
-                                computedExpenses.push({
-                                    id: entry.id,
-                                    title: `[Loan] ${loan.lender}`,
-                                    category: 'Debt/Loan Payment',
-                                    amount: entry.amount,
-                                    periodId: entry.periodId,
-                                    isPaid: !!mData.paidStatus[entry.id], // Set to true when saved via Add Payment
-                                    isLoan: true,
-                                    isManual: false,
-                                    loanId: loan.id
-                                });
-                            }
-                        });
-                    }
+            // Planned loan payments for this month
+            (appData.loans || []).forEach(loan => {
+                let plan = getLoanPlan(loan);
+                let p = plan.months[currentMonth];
+                if (!p) return;
+                computedExpenses.push({
+                    id: `loan_${loan.id}`,
+                    kind: 'loan',
+                    loanId: loan.id,
+                    title: `[Loan] ${loan.lender}`,
+                    category: 'Debt/Loan Payment',
+                    amount: p.amount,
+                    periodId: resolvePeriodId(loan.periodId || 'period_0'),
+                    isPaid: p.isPaid,
+                    isOverride: p.isOverride,
+                    payCount: p.count,
+                    isFinal: p.isFinal,
+                    dueDate: dueDateInMonth(loan, currentMonth)
                 });
-            }
+            });
 
             mData.expenses = computedExpenses;
             return mData;
         }
 
-        function updateExpenseAmount(expId, newAmount, loanId, isManual, periodId) {
-            let amt = Number(newAmount);
-            if (loanId) {
+        // ---------- Budget row actions ----------
+        function onBudgetAmountChange(kind, id, periodId, value, loanId) {
+            let amt = round2(value);
+            let mData = getActiveMonthData();
+            if (kind === 'recurring') {
+                mData.recurringOverrides[id] = amt;   // this month only
+                saveData();
+            } else if (kind === 'manual') {
+                let exp = (mData.manualExpenses[periodId] || []).find(e => e.id === id);
+                if (exp) { exp.amount = amt; saveData(); }
+            } else if (kind === 'loan') {
                 let loan = appData.loans.find(l => l.id === loanId);
-                if (loan) {
-                    let entry = loan.entries.find(e => e.id === expId);
-                    if (entry) {
-                        entry.amount = amt;
-                        saveData();
-                    }
+                if (!loan) return;
+                let monthPays = getPayments(loan).filter(p => p.planMonth === currentMonth);
+                if (monthPays.length === 0) {
+                    if (!loan.plannedOverrides) loan.plannedOverrides = {};
+                    loan.plannedOverrides[currentMonth] = amt;
+                } else if (monthPays.length === 1) {
+                    monthPays[0].amount = amt;
+                } else {
+                    alert('This month has more than one payment logged. Edit them in the loan ledger.');
+                    renderAll();
+                    return;
                 }
-            } else if (isManual) {
-                let mData = appData.monthsData[currentMonth];
-                if (mData && mData.manualExpenses && mData.manualExpenses[periodId]) {
-                    let exp = mData.manualExpenses[periodId].find(e => e.id === expId);
-                    if (exp) {
-                        exp.amount = amt;
-                        saveData();
-                    }
-                }
-            } else {
-                let rec = appData.recurringExpenses.find(r => r.id === expId);
-                if (rec) {
-                    rec.amount = amt;
-                    saveData();
-                }
+                saveData();
             }
         }
 
-        function deleteLoanPayment(loanId, entryId) {
-            let loan = appData.loans.find(l => l.id === loanId);
-            if (loan) {
-                let idx = loan.entries.findIndex(e => e.id === entryId);
-                if (idx > -1) {
-                    loan.entries.splice(idx, 1);
-                    saveData();
-                }
+        function resetBudgetOverride(kind, id, loanId) {
+            if (kind === 'recurring') {
+                let mData = getActiveMonthData();
+                delete mData.recurringOverrides[id];
+            } else if (kind === 'loan') {
+                let loan = appData.loans.find(l => l.id === loanId);
+                if (loan && loan.plannedOverrides) delete loan.plannedOverrides[currentMonth];
             }
+            saveData();
+        }
+
+        function toggleBudgetPaid(kind, id, loanId) {
+            if (kind === 'loan') {
+                let loan = appData.loans.find(l => l.id === loanId);
+                if (!loan) return;
+                let monthPays = getPayments(loan).filter(p => p.planMonth === currentMonth);
+                if (monthPays.length) {
+                    let msg = monthPays.length > 1
+                        ? `Untick will remove ${monthPays.length} payments for ${fmtMonth(currentMonth)} from the ledger. Continue?`
+                        : `Untick will remove this payment from the ledger. Continue?`;
+                    if (!confirm(msg)) return;
+                    loan.entries = loan.entries.filter(e => !(e.type === 'payment' && e.planMonth === currentMonth));
+                } else {
+                    let plan = getLoanPlan(loan).months[currentMonth];
+                    let amt = plan ? plan.amount : Number(loan.monthlyDue || 0);
+                    let today = todayISO();
+                    let date = today.slice(0, 7) === currentMonth ? today : dueDateInMonth(loan, currentMonth);
+                    loan.entries.push({ id: newId('pay'), type: 'payment', amount: amt, date, planMonth: currentMonth, source: 'budget' });
+                }
+                saveData();
+                return;
+            }
+            let mData = getActiveMonthData();
+            mData.paidStatus[id] = !mData.paidStatus[id];
+            saveData();
         }
 
         function deleteManualExpense(periodId, expId) {
@@ -957,7 +1159,7 @@
                 let html = `
                     <div class="flex justify-between items-center ${isCollapsed ? '' : 'border-b border-theme-border pb-2'}">
                         <div>
-                            <h4 class="font-bold text-sm">${period.name}</h4>
+                            <h4 class="font-bold text-sm">${esc(period.name)}</h4>
                             <span class="text-[10px] bg-theme-accent text-theme-primary px-2 py-0.5 rounded-md font-semibold">${period.type}</span>
                         </div>
                         <button onclick="togglePeriodVisibility('${period.id}')" class="w-8 h-8 rounded-full bg-theme-bg text-theme-muted hover:text-theme-primary flex items-center justify-center transition">
@@ -971,7 +1173,7 @@
                         <div class="grid grid-cols-2 gap-2 bg-theme-bg p-2.5 rounded-xl border border-theme-border text-xs">
                             <div>
                                 <span class="text-[10px] text-theme-muted block">Money Left</span>
-                                <span class="font-bold text-emerald-600">${formatPHP(periodMoneyLeft)}</span>
+                                <span class="font-bold ${periodMoneyLeft < 0 ? 'text-rose-600' : 'text-emerald-600'}">${formatPHP(periodMoneyLeft)}</span>
                             </div>
                             <div>
                                 <span class="text-[10px] text-theme-muted block">Total Expenses</span>
@@ -989,7 +1191,7 @@
                     pIncomes.forEach((inc, idx) => {
                         html += `
                             <div class="flex justify-between items-center text-xs bg-theme-bg px-2.5 py-1.5 rounded-lg border border-theme-border">
-                                <span>${inc.title}</span>
+                                <span>${esc(inc.title)}</span>
                                 <div class="flex items-center space-x-2">
                                     <span class="font-semibold text-emerald-600">${formatPHP(inc.amount)}</span>
                                     <button onclick="deleteIncome('${period.id}', ${idx})" class="text-rose-400 hover:text-rose-600"><i class="fa-solid fa-xmark"></i></button>
@@ -1011,26 +1213,49 @@
                     }
 
                     periodExpenses.forEach(exp => {
-                        let isLoanParam = exp.isLoan ? `'${exp.loanId}'` : 'null';
-                        let isManualParam = exp.isManual ? 'true' : 'false';
+                        let loanArg = exp.loanId ? `'${exp.loanId}'` : 'null';
+
+                        // Sub-label under the title
+                        let sub = esc(exp.category || 'General');
+                        if (exp.kind === 'loan') {
+                            sub = exp.isPaid
+                                ? `Paid${exp.payCount > 1 ? ` (${exp.payCount} payments)` : ''}${exp.isFinal ? ' · Final 🎉' : ''}`
+                                : `Due ${fmtDate(exp.dueDate)} · Planned${exp.isFinal ? ' · Final' : ''}`;
+                        }
+                        let overrideTag = '';
+                        if (exp.isOverride && !exp.isPaid) {
+                            let hint = exp.kind === 'recurring' ? `usual ${formatPHP(exp.masterAmount)}` : 'edited';
+                            overrideTag = `<span class="text-theme-primary">· ${hint}
+                                <button onclick="resetBudgetOverride('${exp.kind}', '${exp.id}', ${loanArg})" title="Reset to default" class="ml-0.5 hover:underline"><i class="fa-solid fa-rotate-left"></i></button></span>`;
+                        }
+
+                        // Delete / hide button per kind
+                        let delBtn = '';
+                        if (exp.kind === 'manual') {
+                            delBtn = `<button onclick="deleteManualExpense('${exp.periodId}', '${exp.id}')" title="Delete expense" class="text-rose-400 hover:text-rose-600 flex-shrink-0 ml-1"><i class="fa-solid fa-trash"></i></button>`;
+                        } else if (exp.kind === 'recurring') {
+                            delBtn = `<button onclick="hideRecurringForMonth('${exp.id}')" title="Remove for this month only" class="text-rose-400 hover:text-rose-600 flex-shrink-0 ml-1"><i class="fa-solid fa-trash"></i></button>`;
+                        } else {
+                            delBtn = `<button onclick="openLoanLedgerModal('${exp.loanId}')" title="Open loan ledger" class="text-theme-primary flex-shrink-0 ml-1"><i class="fa-solid fa-book"></i></button>`;
+                        }
 
                         html += `
                             <div class="flex justify-between items-center text-xs bg-theme-bg px-2.5 py-2 rounded-lg border border-theme-border ${exp.isPaid ? 'opacity-60 bg-emerald-50/50' : ''}">
                                 <div class="flex items-center space-x-2 w-3/5">
-                                    <button onclick="toggleExpensePaid('${exp.id}')" class="text-base flex-shrink-0 ${exp.isPaid ? 'text-emerald-600' : 'text-theme-muted'}">
+                                    <button onclick="toggleBudgetPaid('${exp.kind}', '${exp.id}', ${loanArg})" class="text-base flex-shrink-0 ${exp.isPaid ? 'text-emerald-600' : 'text-theme-muted'}">
                                         <i class="fa-regular ${exp.isPaid ? 'fa-square-check' : 'fa-square'}"></i>
                                     </button>
-                                    <div class="truncate">
-                                        <span class="font-medium block truncate ${exp.isPaid ? 'line-through' : ''}">${exp.title}</span>
-                                        <span class="block text-[10px] text-theme-muted">${exp.category || 'General'}</span>
+                                    <div class="min-w-0">
+                                        <span class="font-medium block truncate ${exp.isPaid ? 'line-through' : ''}">${esc(exp.title)}</span>
+                                        <span class="block text-[10px] text-theme-muted truncate">${sub} ${overrideTag}</span>
                                     </div>
                                 </div>
                                 <div class="flex items-center space-x-1 w-2/5 justify-end">
                                     <div class="flex items-center">
                                         <span class="text-rose-600 font-semibold mr-0.5">₱</span>
-                                        <input type="number" value="${exp.amount}" step="0.01" onchange="updateExpenseAmount('${exp.id}', this.value, ${isLoanParam}, ${isManualParam}, '${exp.periodId}')" class="w-16 bg-transparent text-right font-semibold text-rose-600 focus:outline-none border-b border-transparent focus:border-rose-300 py-0.5">
+                                        <input type="number" value="${exp.amount}" step="0.01" onchange="onBudgetAmountChange('${exp.kind}', '${exp.id}', '${exp.periodId}', this.value, ${loanArg})" class="w-20 bg-transparent text-right font-semibold text-rose-600 focus:outline-none border-b border-dashed border-rose-200 focus:border-rose-400 py-0.5">
                                     </div>
-                                    <button onclick="${exp.isLoan ? `deleteLoanPayment('${exp.loanId}', '${exp.id}')` : (exp.isManual ? `deleteManualExpense('${exp.periodId}', '${exp.id}')` : `hideRecurringForMonth('${exp.id}')`)}" title="${exp.isLoan ? 'Delete Payment' : (exp.isManual ? 'Delete Expense' : 'Delete for this month only')}" class="text-rose-400 hover:text-rose-600 flex-shrink-0 ml-1"><i class="fa-solid fa-trash"></i></button>
+                                    ${delBtn}
                                 </div>
                             </div>
                         `;
@@ -1042,6 +1267,57 @@
                 card.innerHTML = html;
                 container.appendChild(card);
             });
+        }
+
+        // Overdue summary at the bottom of the Budget tab (always as of today)
+        function renderLoanStatusCard() {
+            const card = document.getElementById('loanStatusCard');
+            let loans = appData.loans || [];
+            if (loans.length === 0) { card.classList.add('hidden'); return; }
+            card.classList.remove('hidden');
+
+            let today = todayISO();
+            let statuses = loans.map(l => ({ loan: l, st: getLoanStatus(l, today) }));
+            let behind = statuses.filter(s => s.st.overdue > 0.005);
+            let totalOverdue = behind.reduce((s, b) => s + b.st.overdue, 0);
+
+            let html = `
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-theme-muted">Loan Status</h3>
+                    <span class="text-[10px] text-theme-muted">as of ${fmtDate(today)}</span>
+                </div>
+            `;
+
+            if (behind.length === 0) {
+                html += `
+                    <div class="flex items-center space-x-2 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl px-3 py-2.5 text-sm font-semibold">
+                        <i class="fa-solid fa-circle-check"></i><span>Current — nothing overdue</span>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="flex justify-between items-center bg-rose-50 border border-rose-200 rounded-xl px-3 py-2.5">
+                        <span class="text-xs font-semibold text-rose-700"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Total Overdue</span>
+                        <span class="text-base font-bold text-rose-600">${formatPHP(totalOverdue)}</span>
+                    </div>
+                    <div class="space-y-1">
+                `;
+                behind.forEach(b => {
+                    html += `
+                        <button onclick="openLoanLedgerModal('${b.loan.id}')" class="w-full flex justify-between items-center text-xs bg-theme-bg px-2.5 py-2 rounded-lg border border-theme-border text-left">
+                            <div>
+                                <span class="font-medium block">${esc(b.loan.lender)}</span>
+                                <span class="text-[10px] text-theme-muted">${b.st.behindCount} due${b.st.behindCount > 1 ? 's' : ''} behind · since ${fmtDate(b.st.oldestUnpaid)}</span>
+                            </div>
+                            <span class="font-semibold text-rose-600">${formatPHP(b.st.overdue)}</span>
+                        </button>
+                    `;
+                });
+                html += `</div>`;
+                let currentCount = statuses.length - behind.length;
+                if (currentCount > 0) html += `<p class="text-[10px] text-theme-muted px-1">${currentCount} other loan${currentCount > 1 ? 's' : ''} current.</p>`;
+            }
+            card.innerHTML = html;
         }
 
         function populateCategoryDropdowns() {
@@ -1073,7 +1349,7 @@
                 let div = document.createElement('div');
                 div.className = 'flex justify-between items-center bg-theme-bg border border-theme-border px-3 py-1.5 rounded-xl text-xs';
                 div.innerHTML = `
-                    <span>${cat}</span>
+                    <span>${esc(cat)}</span>
                     <button onclick="deleteCustomCategory(${idx})" class="text-rose-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>
                 `;
                 list.appendChild(div);
@@ -1112,22 +1388,22 @@
                 
                 let html = `
                     <div class="flex justify-between items-center border-b border-theme-border pb-2">
-                        <h4 class="font-bold text-sm text-theme-primary">${period.name}</h4>
+                        <h4 class="font-bold text-sm text-theme-primary">${esc(period.name)}</h4>
                         <button onclick="openExpenseModal('${period.id}')" class="text-xs bg-theme-primary text-white px-2.5 py-1 rounded-lg font-medium">+ Add Recurring</button>
                     </div>
                     <div class="space-y-2">
                 `;
 
                 if (periodRecurrings.length === 0) {
-                    html += `<p class="text-xs text-theme-muted italic">No recurring items for ${period.name}.</p>`;
+                    html += `<p class="text-xs text-theme-muted italic">No recurring items for ${esc(period.name)}.</p>`;
                 }
 
                 periodRecurrings.forEach(rec => {
                     html += `
                         <div class="flex justify-between items-center text-xs bg-theme-bg p-2.5 rounded-xl border border-theme-border">
                             <div>
-                                <span class="font-bold block">${rec.title}</span>
-                                <span class="text-[10px] text-theme-muted">${rec.category}</span>
+                                <span class="font-bold block">${esc(rec.title)}</span>
+                                <span class="text-[10px] text-theme-muted">${esc(rec.category)}</span>
                             </div>
                             <div class="flex items-center space-x-2">
                                 <span class="font-semibold text-rose-600">${formatPHP(rec.amount)}</span>
@@ -1146,7 +1422,7 @@
 
         function renderSummaryTab() {
             let mData = getActiveMonthData();
-            document.getElementById('summaryInsightsMonthLabel').innerText = `Analysis for ${currentMonth}`;
+            document.getElementById('summaryInsightsMonthLabel').innerText = `Analysis for ${fmtMonth(currentMonth)}`;
             const container = document.getElementById('categoryBreakdownContainer');
             container.innerHTML = '';
 
@@ -1172,7 +1448,7 @@
                 div.className = 'bg-theme-bg p-3 rounded-xl border border-theme-border space-y-1';
                 div.innerHTML = `
                     <div class="flex justify-between items-center text-xs font-semibold">
-                        <span>${cat}</span>
+                        <span>${esc(cat)}</span>
                         <span class="text-rose-600">${formatPHP(amt)} (${pct}%)</span>
                     </div>
                     <div class="w-full bg-theme-border rounded-full h-1.5 overflow-hidden">
@@ -1229,12 +1505,11 @@
             
             if (!title || !amount) return;
             
-            let mData = appData.monthsData[currentMonth];
-            if (!mData.manualExpenses) mData.manualExpenses = {};
+            let mData = getActiveMonthData();
             if (!mData.manualExpenses[periodId]) mData.manualExpenses[periodId] = [];
             
             mData.manualExpenses[periodId].push({
-                id: 'man_' + Date.now() + Math.random().toString(36).substr(2, 5),
+                id: newId('man'),
                 title, 
                 category, 
                 amount
@@ -1311,11 +1586,9 @@
             }
         }
 
-        function toggleExpensePaid(expenseId) {
-            let mData = getActiveMonthData();
-            mData.paidStatus[expenseId] = !mData.paidStatus[expenseId];
-            saveData();
-        }
+        // =====================================================================
+        // LOANS LIST, ADD/EDIT, LEDGER
+        // =====================================================================
 
         function renderLoans() {
             const container = document.getElementById('loansListContainer');
@@ -1326,6 +1599,15 @@
             }
 
             appData.loans.forEach(loan => {
+                let st = getLoanStatus(loan);
+                let plan = getLoanPlan(loan);
+                let pct = st.totalWithCharges > 0 ? Math.min(100, Math.round((st.paidTotal / st.totalWithCharges) * 100)) : 0;
+                let statusChip = st.overdue > 0.005
+                    ? `<span class="bg-rose-50 text-rose-600 border border-rose-200 px-2 py-0.5 rounded text-[10px] font-semibold">Overdue ${formatPHP(st.overdue)}</span>`
+                    : (st.remaining <= 0.005
+                        ? `<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded text-[10px] font-semibold">Paid off 🎉</span>`
+                        : `<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded text-[10px] font-semibold">Current</span>`);
+
                 let div = document.createElement('div');
                 div.className = 'bg-theme-card border border-theme-border rounded-xl p-3.5 space-y-2 shadow-sm cursor-pointer hover:border-theme-primary transition';
                 div.onclick = () => openLoanLedgerModal(loan.id);
@@ -1334,51 +1616,85 @@
                     <div class="flex justify-between items-center">
                         <div class="flex items-center space-x-2">
                             <i class="fa-solid fa-file-invoice-dollar text-theme-primary"></i>
-                            <h4 class="font-bold text-sm">${loan.lender}</h4>
+                            <h4 class="font-bold text-sm">${esc(loan.lender)}</h4>
                         </div>
-                        <button onclick="event.stopPropagation(); deleteLoan('${loan.id}')" class="text-rose-400 text-xs hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>
+                        <div class="flex items-center space-x-2">
+                            ${statusChip}
+                            <button onclick="event.stopPropagation(); deleteLoan('${loan.id}')" class="text-rose-400 text-xs hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>
+                        </div>
                     </div>
-                    <div class="flex justify-between text-xs pt-1">
-                        <span class="text-theme-muted">Balance: <strong class="text-rose-600">${formatPHP(loan.overdueAmount)}</strong></span>
-                        <span class="bg-theme-accent text-theme-primary px-2 py-0.5 rounded text-[10px] font-semibold">Monthly Due: ${formatPHP(loan.monthlyAmountDue || 0)}</span>
+                    <div class="w-full bg-theme-border rounded-full h-1.5 overflow-hidden">
+                        <div class="bg-theme-primary h-full rounded-full" style="width:${pct}%"></div>
                     </div>
-                    <p class="text-[10px] text-theme-accent text-right font-medium">Click to view Waterfall Ledger &rarr;</p>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-theme-muted">Remaining: <strong class="text-rose-600">${formatPHP(st.remaining)}</strong> of ${formatPHP(st.totalWithCharges)}</span>
+                        <span class="text-theme-muted">${pct}% paid</span>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-theme-muted">
+                        <span>${formatPHP(loan.monthlyDue)}/mo${st.nextDue ? ` · next due ${fmtDate(st.nextDue.date)}` : ''}</span>
+                        <span>${plan.payoffMonth ? `Payoff: ${fmtMonth(plan.payoffMonth)}` : ''}</span>
+                    </div>
                 `;
                 container.appendChild(div);
             });
         }
 
-        function openAddLoanModal() {
-            document.getElementById('loanLenderName').value = '';
-            document.getElementById('loanOverdueAmount').value = '';
-            document.getElementById('loanDueDate').value = new Date().toISOString().split('T')[0];
-            document.getElementById('loanMonthlyDue').value = '';
-            document.getElementById('addLoanModal').classList.remove('hidden');
+        function openLoanModal(loanId = null) {
+            let sel = document.getElementById('loanPeriodSelect');
+            sel.innerHTML = '';
+            getActivePeriods().forEach(p => {
+                let opt = document.createElement('option');
+                opt.value = p.id; opt.innerText = p.name;
+                sel.appendChild(opt);
+            });
+
+            let loan = loanId ? appData.loans.find(l => l.id === loanId) : null;
+            document.getElementById('editLoanId').value = loan ? loan.id : '';
+            document.getElementById('loanModalTitle').innerText = loan ? 'Edit Loan Details' : 'Add Loan / Lender';
+            document.getElementById('loanLenderName').value = loan ? loan.lender : '';
+            document.getElementById('loanTotalAmount').value = loan ? loan.totalAmount : '';
+            document.getElementById('loanMonthlyDue').value = loan ? loan.monthlyDue : '';
+            document.getElementById('loanFirstDueDate').value = loan ? loan.firstDueDate : todayISO();
+            document.getElementById('loanOpeningPaid').value = loan && loan.openingPaid ? loan.openingPaid : '';
+            sel.value = loan ? resolvePeriodId(loan.periodId || 'period_0') : 'period_0';
+            document.getElementById('loanModal').classList.remove('hidden');
         }
-        function closeAddLoanModal() { document.getElementById('addLoanModal').classList.add('hidden'); }
-        function saveNewLoan() {
-            let lender = document.getElementById('loanLenderName').value;
-            let overdueAmount = Number(document.getElementById('loanOverdueAmount').value);
-            let dueDate = document.getElementById('loanDueDate').value;
-            let monthlyAmountDue = Number(document.getElementById('loanMonthlyDue').value);
-            
-            if (!lender) return;
+        function closeLoanModal() { document.getElementById('loanModal').classList.add('hidden'); }
+
+        function saveLoan() {
+            let lender = document.getElementById('loanLenderName').value.trim();
+            let totalAmount = round2(document.getElementById('loanTotalAmount').value);
+            let monthlyDue = round2(document.getElementById('loanMonthlyDue').value);
+            let firstDueDate = document.getElementById('loanFirstDueDate').value;
+            let openingPaid = round2(document.getElementById('loanOpeningPaid').value);
+            let periodId = document.getElementById('loanPeriodSelect').value;
+            let editId = document.getElementById('editLoanId').value;
+
+            if (!lender || !totalAmount || !monthlyDue || !firstDueDate) {
+                alert('Please fill in the name, total loan amount, monthly due and first due date.');
+                return;
+            }
 
             if (!appData.loans) appData.loans = [];
-            appData.loans.push({
-                id: Date.now().toString(),
-                lender,
-                overdueAmount,
-                dueDate,
-                monthlyAmountDue,
-                entries: [
-                    { id: 'entry_' + Date.now(), type: 'due', date: dueDate || new Date().toISOString().split('T')[0], amount: overdueAmount, title: 'Initial Overdue' }
-                ]
-            });
-            closeAddLoanModal();
+            if (editId) {
+                let loan = appData.loans.find(l => l.id === editId);
+                if (loan) Object.assign(loan, { lender, totalAmount, monthlyDue, firstDueDate, openingPaid, periodId });
+            } else {
+                appData.loans.push({
+                    id: Date.now().toString(),
+                    v: 2,
+                    lender, totalAmount, monthlyDue, firstDueDate, openingPaid, periodId,
+                    plannedOverrides: {},
+                    entries: []
+                });
+            }
+            closeLoanModal();
             saveData();
         }
+
         function deleteLoan(id) {
+            let loan = appData.loans.find(l => l.id === id);
+            if (!loan || !confirm(`Delete "${loan.lender}" and its whole ledger?`)) return;
             appData.loans = appData.loans.filter(l => l.id !== id);
             saveData();
         }
@@ -1387,8 +1703,6 @@
             currentActiveLoanId = loanId;
             let loan = appData.loans.find(l => l.id === loanId);
             if (!loan) return;
-
-            document.getElementById('ledgerModalTitle').innerText = `${loan.lender} - Waterfall Ledger`;
             renderLedgerEntries(loan);
             document.getElementById('loanLedgerModal').classList.remove('hidden');
         }
@@ -1399,148 +1713,156 @@
         }
 
         function renderLedgerEntries(loan) {
+            document.getElementById('ledgerModalTitle').innerText = `${loan.lender} - Waterfall Ledger`;
             const container = document.getElementById('ledgerContentContainer');
-            container.innerHTML = '';
+            let today = todayISO();
+            let st = getLoanStatus(loan, today);
+            let plan = getLoanPlan(loan);
 
-            if (!loan.entries) {
-                loan.entries = [{ id: 'entry_' + Date.now(), type: 'due', date: loan.dueDate || new Date().toISOString().split('T')[0], amount: loan.overdueAmount, title: 'Initial Overdue' }];
+            // --- Summary block ---
+            let html = `
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div class="bg-theme-bg p-2.5 rounded-xl border border-theme-border">
+                        <span class="text-[10px] text-theme-muted block">Total Loan</span>
+                        <span class="font-bold">${formatPHP(st.totalWithCharges)}</span>
+                    </div>
+                    <div class="bg-theme-bg p-2.5 rounded-xl border border-theme-border">
+                        <span class="text-[10px] text-theme-muted block">Paid So Far</span>
+                        <span class="font-bold text-emerald-600">${formatPHP(st.paidTotal)}</span>
+                    </div>
+                    <div class="bg-theme-bg p-2.5 rounded-xl border border-theme-border">
+                        <span class="text-[10px] text-theme-muted block">Remaining</span>
+                        <span class="font-bold text-rose-600">${formatPHP(st.remaining)}</span>
+                    </div>
+                    <div class="p-2.5 rounded-xl border ${st.overdue > 0.005 ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'}">
+                        <span class="text-[10px] text-theme-muted block">Overdue</span>
+                        <span class="font-bold ${st.overdue > 0.005 ? 'text-rose-600' : 'text-emerald-700'}">${st.overdue > 0.005 ? formatPHP(st.overdue) : 'Current ✓'}</span>
+                    </div>
+                </div>
+                <div class="text-[11px] text-theme-muted bg-theme-bg border border-theme-border rounded-xl p-2.5 space-y-0.5">
+                    <div class="flex justify-between"><span>Monthly due</span><strong class="text-theme-text">${formatPHP(loan.monthlyDue)} on day ${Number(loan.firstDueDate.split('-')[2])}</strong></div>
+                    <div class="flex justify-between"><span>Next due</span><strong class="text-theme-text">${st.nextDue ? `${fmtDate(st.nextDue.date)} · ${formatPHP(st.nextDue.amount)}` : '—'}</strong></div>
+                    <div class="flex justify-between"><span>Contract ends</span><strong class="text-theme-text">${st.schedule.length ? fmtMonth(st.schedule[st.schedule.length - 1].month) : '—'}</strong></div>
+                    <div class="flex justify-between"><span>Payoff on your Budget plan</span><strong class="text-theme-text">${plan.payoffMonth ? fmtMonth(plan.payoffMonth) : '—'}</strong></div>
+                </div>
+                <h4 class="text-xs font-semibold uppercase tracking-wider text-theme-muted">Ledger</h4>
+            `;
+
+            // --- Waterfall: scheduled dues up to today + next one, charges, payments ---
+            let shownDues = st.schedule.filter(s => s.date <= today);
+            if (st.nextDue) shownDues.push(st.nextDue);
+            let hiddenFuture = st.schedule.filter(s => s.date > today).length - (st.nextDue ? 1 : 0);
+
+            let rows = [];
+            if (Number(loan.openingPaid || 0) > 0) {
+                rows.push({ kind: 'opening', date: '0000-00-00', amount: Number(loan.openingPaid) });
             }
+            shownDues.forEach(s => rows.push({ kind: 'due', date: s.date, amount: s.amount, future: s.date > today }));
+            getCharges(loan).forEach(c => rows.push({ kind: 'charge', date: c.date, amount: Number(c.amount), title: c.title, id: c.id }));
+            getPayments(loan).forEach(p => rows.push({ kind: 'payment', date: p.date, amount: Number(p.amount), id: p.id, source: p.source }));
 
-            loan.entries.sort((a, b) => new Date(a.date) - new Date(b.date));
-            let runningBalance = 0;
+            // Same-day: dues before payments
+            const order = { opening: 0, due: 1, charge: 2, payment: 3 };
+            rows.sort((a, b) => a.date.localeCompare(b.date) || order[a.kind] - order[b.kind]);
 
-            loan.entries.forEach((entry, idx) => {
-                let isPayment = entry.type === 'payment';
-                if (isPayment) runningBalance -= Number(entry.amount);
-                else runningBalance += Number(entry.amount);
-
-                let rowDiv = document.createElement('div');
-                rowDiv.className = `p-3 rounded-xl border border-theme-border text-xs space-y-1 ${isPayment ? 'bg-emerald-50/60 border-emerald-200' : 'bg-theme-bg'}`;
-                
-                let dateDisplay = isPayment ? `Paid: ${entry.date}` : `Due: ${entry.date}`;
-
-                rowDiv.innerHTML = `
-                    <div class="flex justify-between items-center font-bold">
-                        <span class="${isPayment ? 'text-emerald-700' : 'text-theme-primary'}">
-                            ${isPayment ? `<i class="fa-solid fa-circle-check mr-1"></i> Payment (${entry.periodName || 'Period'})` : `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Amount Due (${entry.title || 'Due'})`}
-                        </span>
-                        <div class="flex items-center space-x-2">
-                            <span class="${isPayment ? 'text-emerald-600' : 'text-rose-600'}">${isPayment ? '-' : '+'}${formatPHP(entry.amount)}</span>
-                            <button onclick="deleteLedgerEntry('${loan.id}', ${idx})" class="text-rose-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>
+            let running = 0; // positive = owed vs schedule, negative = ahead (credit)
+            let rowHtml = '';
+            rows.forEach(r => {
+                let isPay = r.kind === 'payment' || r.kind === 'opening';
+                running += isPay ? -r.amount : r.amount;
+                let label, dateText, delBtn = '';
+                if (r.kind === 'opening') { label = '<i class="fa-solid fa-circle-check mr-1"></i> Paid before tracking'; dateText = 'Opening'; }
+                else if (r.kind === 'payment') {
+                    label = `<i class="fa-solid fa-circle-check mr-1"></i> Payment${r.source === 'budget' ? ' (from Budget)' : ''}`;
+                    dateText = `Paid: ${fmtDate(r.date)}`;
+                    delBtn = `<button onclick="deleteLedgerEntry('${loan.id}', '${r.id}')" class="text-rose-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>`;
+                } else if (r.kind === 'charge') {
+                    label = `<i class="fa-solid fa-plus mr-1"></i> Charge (${esc(r.title || 'Fee')})`;
+                    dateText = `Due: ${fmtDate(r.date)}`;
+                    delBtn = `<button onclick="deleteLedgerEntry('${loan.id}', '${r.id}')" class="text-rose-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>`;
+                } else {
+                    label = `<i class="fa-solid ${r.future ? 'fa-calendar' : 'fa-triangle-exclamation'} mr-1"></i> ${r.future ? 'Upcoming Due' : 'Amount Due'}`;
+                    dateText = `Due: ${fmtDate(r.date)}`;
+                }
+                let bal = round2(running);
+                rowHtml = `
+                    <div class="p-3 rounded-xl border text-xs space-y-1 ${isPay ? 'bg-emerald-50/60 border-emerald-200' : 'bg-theme-bg border-theme-border'} ${r.future ? 'opacity-60' : ''}">
+                        <div class="flex justify-between items-center font-bold">
+                            <span class="${isPay ? 'text-emerald-700' : 'text-theme-primary'}">${label}</span>
+                            <div class="flex items-center space-x-2">
+                                <span class="${isPay ? 'text-emerald-600' : 'text-rose-600'}">${isPay ? '-' : '+'}${formatPHP(r.amount)}</span>
+                                ${delBtn}
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-theme-muted">
+                            <span>${dateText}</span>
+                            <span class="font-bold ${bal < 0 ? 'text-blue-600' : (bal > 0 && !r.future ? 'text-rose-600' : 'text-theme-text')}">
+                                ${bal < 0 ? `Ahead: ${formatPHP(-bal)}` : `Behind: ${formatPHP(bal)}`}
+                            </span>
                         </div>
                     </div>
-                    <div class="flex justify-between text-[10px] text-theme-muted">
-                        <span>${dateDisplay}</span>
-                        <span class="font-bold ${runningBalance < 0 ? 'text-blue-600' : 'text-theme-text'}">Running Balance: ${formatPHP(runningBalance)} ${runningBalance < 0 ? '(Credit)' : ''}</span>
-                    </div>
-                `;
-                container.appendChild(rowDiv);
+                ` + rowHtml; // newest on top
             });
-        }
 
-        function openLedgerAddDueModal() {
-            let loan = appData.loans.find(l => l.id === currentActiveLoanId);
-            document.getElementById('ledgerDueTitleInput').value = 'Monthly Bill';
-            document.getElementById('ledgerDueAmountInput').value = loan && loan.monthlyAmountDue ? loan.monthlyAmountDue : '';
-            
-            let nextDateStr = new Date().toISOString().split('T')[0];
-            if (loan && loan.entries) {
-                let dueEntries = loan.entries.filter(e => e.type === 'due');
-                if (dueEntries.length > 0) {
-                    dueEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
-                    let latestDate = dueEntries[0].date;
-                    let [y, m, d] = latestDate.split('-').map(Number);
-                    m += 1;
-                    if (m > 12) { m = 1; y += 1; }
-                    let daysInNextMonth = new Date(y, m, 0).getDate();
-                    let nextD = Math.min(d, daysInNextMonth);
-                    nextDateStr = `${y}-${String(m).padStart(2, '0')}-${String(nextD).padStart(2, '0')}`;
-                } else if (loan.dueDate) {
-                    nextDateStr = loan.dueDate;
-                }
+            html += `<div class="space-y-2">${rowHtml || '<p class="text-xs text-theme-muted italic">No entries yet.</p>'}</div>`;
+            if (hiddenFuture > 0) {
+                html += `<p class="text-[10px] text-theme-muted text-center">+ ${hiddenFuture} more scheduled due${hiddenFuture > 1 ? 's' : ''} until the loan is paid off.</p>`;
             }
-
-            document.getElementById('ledgerDueDateInput').value = nextDateStr;
-            document.getElementById('addLedgerDueModal').classList.remove('hidden');
+            container.innerHTML = html;
         }
 
-        function closeLedgerAddDueModal() { document.getElementById('addLedgerDueModal').classList.add('hidden'); }
-        
-        function saveLedgerDue() {
-            let title = document.getElementById('ledgerDueTitleInput').value;
-            let amount = Number(document.getElementById('ledgerDueAmountInput').value);
-            let date = document.getElementById('ledgerDueDateInput').value;
-            if (!title || !amount || !date) return;
+        function openLedgerAddChargeModal() {
+            document.getElementById('ledgerChargeTitleInput').value = 'Late fee';
+            document.getElementById('ledgerChargeAmountInput').value = '';
+            document.getElementById('ledgerChargeDateInput').value = todayISO();
+            document.getElementById('addLedgerChargeModal').classList.remove('hidden');
+        }
+        function closeLedgerAddChargeModal() { document.getElementById('addLedgerChargeModal').classList.add('hidden'); }
 
+        function saveLedgerCharge() {
+            let title = document.getElementById('ledgerChargeTitleInput').value;
+            let amount = round2(document.getElementById('ledgerChargeAmountInput').value);
+            let date = document.getElementById('ledgerChargeDateInput').value;
+            if (!title || !amount || !date) return;
             let loan = appData.loans.find(l => l.id === currentActiveLoanId);
             if (loan) {
-                loan.entries.push({ id: 'entry_' + Date.now(), type: 'due', title, amount, date });
-                closeLedgerAddDueModal();
+                loan.entries.push({ id: newId('chg'), type: 'charge', title, amount, date });
+                closeLedgerAddChargeModal();
                 saveData();
-                renderLedgerEntries(loan);
             }
         }
 
         function openLedgerAddPaymentModal() {
-            let select = document.getElementById('ledgerPaymentPeriodSelect');
-            select.innerHTML = '';
-            let periods = getActivePeriods();
-            periods.forEach(p => {
-                let opt = document.createElement('option');
-                opt.value = p.id;
-                opt.innerText = p.name;
-                select.appendChild(opt);
-            });
-            document.getElementById('ledgerPaymentAmountInput').value = '';
-            document.getElementById('ledgerPaymentDateInput').value = new Date().toISOString().split('T')[0];
+            let loan = appData.loans.find(l => l.id === currentActiveLoanId);
+            document.getElementById('ledgerPaymentAmountInput').value = loan ? loan.monthlyDue : '';
+            document.getElementById('ledgerPaymentDateInput').value = todayISO();
             document.getElementById('addLedgerPaymentModal').classList.remove('hidden');
         }
 
         function closeLedgerAddPaymentModal() { document.getElementById('addLedgerPaymentModal').classList.add('hidden'); }
         
         function saveLedgerPayment() {
-            let amount = Number(document.getElementById('ledgerPaymentAmountInput').value);
+            let amount = round2(document.getElementById('ledgerPaymentAmountInput').value);
             let date = document.getElementById('ledgerPaymentDateInput').value;
-            let periodId = document.getElementById('ledgerPaymentPeriodSelect').value;
-            if (!amount || !date || !periodId) return;
-
-            let periods = getActivePeriods();
-            let chosenPeriod = periods.find(p => p.id === periodId);
+            if (!amount || !date) return;
             let loan = appData.loans.find(l => l.id === currentActiveLoanId);
-
-            if (loan && chosenPeriod) {
-                let entryId = 'entry_' + Date.now() + Math.random().toString(36).substr(2, 5);
-                loan.entries.push({
-                    id: entryId,
-                    type: 'payment',
-                    amount,
-                    date,
-                    periodId: chosenPeriod.id,
-                    periodName: chosenPeriod.name
-                });
-
-                // Mark the ledger payment as paid natively inside the current month automatically
-                let month = date.substring(0, 7);
-                if (!appData.monthsData[month]) appData.monthsData[month] = { incomes: {}, hiddenRecurring: [], paidStatus: {} };
-                if (!appData.monthsData[month].paidStatus) appData.monthsData[month].paidStatus = {};
-                appData.monthsData[month].paidStatus[entryId] = true;
-
+            if (loan) {
+                loan.entries.push({ id: newId('pay'), type: 'payment', amount, date, planMonth: date.slice(0, 7) });
                 closeLedgerAddPaymentModal();
                 saveData();
-                renderLedgerEntries(loan);
             }
         }
 
-        function deleteLedgerEntry(loanId, entryIdx) {
+        function deleteLedgerEntry(loanId, entryId) {
             let loan = appData.loans.find(l => l.id === loanId);
-            if (loan && loan.entries.length > 1) {
-                loan.entries.splice(entryIdx, 1);
-                saveData();
-                renderLedgerEntries(loan);
-            } else {
-                alert('Cannot delete the last remaining entry.');
-            }
+            if (!loan) return;
+            loan.entries = loan.entries.filter(e => e.id !== entryId);
+            saveData();
         }
+
+        // =====================================================================
+        // SETTINGS, NOTES, TIME COST
+        // =====================================================================
 
         function initSettingsUI() {
             let s = appData.settings;
@@ -1572,7 +1894,7 @@
                 div.className = 'flex items-center space-x-2';
                 div.innerHTML = `
                     <span class="text-xs text-theme-muted w-16">Period ${i+1}:</span>
-                    <input type="text" value="${names[i] || ''}" onchange="updatePeriodLabel('${freq}', ${i}, this.value)" class="flex-1 bg-theme-bg border border-theme-border rounded-lg px-2.5 py-1.5 text-xs">
+                    <input type="text" value="${esc(names[i] || '')}" onchange="updatePeriodLabel('${freq}', ${i}, this.value)" class="flex-1 bg-theme-bg border border-theme-border rounded-lg px-2.5 py-1.5 text-xs">
                 `;
                 container.appendChild(div);
             }
@@ -1598,10 +1920,10 @@
                     div.className = 'bg-theme-bg border border-theme-border rounded-xl p-3 space-y-2';
                     div.innerHTML = `
                         <div class="flex justify-between items-center">
-                            <input type="text" value="${note.title || ''}" onchange="updateNoteTitle('${note.id}', this.value)" placeholder="Note Title" class="font-bold text-xs bg-transparent border-b border-theme-border pb-1 w-full focus:outline-none focus:border-theme-primary">
+                            <input type="text" value="${esc(note.title || '')}" onchange="updateNoteTitle('${note.id}', this.value)" placeholder="Note Title" class="font-bold text-xs bg-transparent border-b border-theme-border pb-1 w-full focus:outline-none focus:border-theme-primary">
                             <button onclick="deleteNote('${note.id}')" class="text-rose-400 hover:text-rose-600 text-xs ml-2"><i class="fa-solid fa-trash"></i></button>
                         </div>
-                        <textarea rows="3" onchange="updateNoteContent('${note.id}', this.value)" placeholder="Write your note here..." class="w-full bg-theme-card border border-theme-border rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-theme-primary resize-none">${note.content || ''}</textarea>
+                        <textarea rows="3" onchange="updateNoteContent('${note.id}', this.value)" placeholder="Write your note here..." class="w-full bg-theme-card border border-theme-border rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-theme-primary resize-none">${esc(note.content || '')}</textarea>
                     `;
                     container.appendChild(div);
                 });
